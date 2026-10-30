@@ -84,6 +84,15 @@ branch compatibility, because exact duplication time is generally not
 identifiable from extant leaves. Extinct trials are counted separately and
 are not assigned fabricated inferred metrics.
 
+## Research reports
+
+The [second study report](experiments/2026-10-30-second-study/reports/study_report.md)
+documents a 3x3 duplication/loss-rate simulation study. Its
+[statistical audit](experiments/2026-10-30-second-study/reports/statistical_audit.md)
+checks the reported summaries against the archived trial records and describes
+the interval methods and their limitations. These reports describe results
+conditional on the study's simulator settings and species-tree design.
+
 ## Validation
 
 ```bash

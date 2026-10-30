@@ -8,17 +8,18 @@ The pilot used seeds 1001-1005 in every cell (45 trials total) before the full r
 
 ## Statistical summaries
 
-For each metric, means and sample standard deviations are computed over the applicable valid observations. Monte Carlo standard error is `sample SD / sqrt(n)`. Reported 95% intervals use the normal approximation `mean +/- 1.96 * MCSE`; they are descriptive simulation-study intervals, not model-based confidence statements. Complete-history metrics use all trials. Inferred and identifiable-loss metrics exclude extinct trials. Extinction frequency uses all trials.
+For each non-extinction metric, means and sample standard deviations are computed over the applicable valid observations. Monte Carlo standard error is `sample SD / sqrt(n)`. The original summary CSV reports descriptive 95% normal-approximation intervals (`mean +/- 1.96 * MCSE`); these are not model-based confidence statements. Complete-history metrics use all 100 trials per cell. Inferred and identifiable-loss metrics exclude extinct trials, so their denominators are the number of surviving trials. Extinction frequency uses all trials and is reported with a Wilson score interval in the statistical audit.
 
 ## Results
 
 The complete machine-readable results are in `summary/factorial_summary.csv`; raw trial records are in `raw/all_trials.csv`. Figures use those measured cell summaries only.
 
 The statistical audit in `reports/statistical_audit.md` and
-`summary/statistical_audit.csv` provides the preferred interval reporting:
-Wilson score intervals for extinction frequency and deterministic percentile
-bootstrap intervals for bounded per-trial metrics. The original summary table
-is retained for provenance.
+`summary/statistical_audit.csv` reports Wilson score intervals for extinction
+frequency and deterministic percentile-bootstrap intervals for bounded
+per-trial metrics. These alternatives complement the original normal
+approximation; the bootstrap intervals are empirical and do not guarantee
+nominal coverage. The original summary table is retained for provenance.
 
 ## Comparison with exploratory study
 
@@ -29,6 +30,9 @@ The diagonal cells (0.01/0.01, 0.10/0.10, 0.50/0.50) can be compared with the ea
 This remains a simulation study on one species-tree topology and one branch-length scale. Rates are constant within branches, duplication and loss costs are fixed at one, and the simulator limits could truncate unusually large histories. The audited intervals do not account for model uncertainty, topology uncertainty, or dependence induced by any shared design choices. Extinction reduces the valid sample size for inferred metrics in affected cells; those counts are reported explicitly rather than imputed.
 
 ## Cell-level means
+
+The inferred-cost mean is calculated over non-extinct trials in each cell; the
+valid sample sizes are therefore 100 minus the extinct count shown below.
 
 | Duplication rate | Loss rate | Extinct | Complete duplications | Complete losses | Inferred cost |
 |---:|---:|---:|---:|---:|---:|
