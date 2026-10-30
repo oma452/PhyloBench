@@ -6,7 +6,7 @@ Raw data contain 900 trials across 9 cells. Every cell contains exactly 100 tria
 
 ## Statistical verification
 
-Means and sample standard deviations match the raw CSV values to floating-point tolerance. MCSE is sample SD divided by the square root of valid observations. Original summary tables use the normal approximation mean ± 1.96×MCSE.
+Means and sample standard deviations match the raw CSV values to floating-point tolerance. For ordinary metrics, MCSE is sample SD divided by the square root of valid observations. The original summary tables use the normal approximation `mean +/- 1.96 * MCSE`. For extinction frequency, MCSE uses the plug-in Bernoulli standard deviation `sqrt(p * (1 - p)) / sqrt(n)`; the recommended interval is Wilson score.
 
 | Cell | Extinct | Valid inferred observations |
 |---|---:|---:|
@@ -22,7 +22,7 @@ Means and sample standard deviations match the raw CSV values to floating-point 
 
 ## Confidence-interval recommendation
 
-Clipping a normal interval to [0,1] is a pragmatic display constraint, not a statistically principled interval construction; it can conceal skewness and boundary behavior. The audited reporting layer therefore uses Wilson score intervals for extinction frequency and deterministic percentile-bootstrap intervals for bounded per-trial metrics (location agreement, duplication compatibility, and loss precision/recall). Unbounded counts and costs retain descriptive normal-approximation intervals. The original summary CSV is preserved; `summary/statistical_audit.csv` contains the recommended intervals and method labels.
+Normal-approximation intervals for bounded metrics can extend beyond [0,1], and clipping them can conceal skewness and boundary behavior. The audit therefore reports Wilson score intervals for extinction frequency and deterministic percentile-bootstrap intervals for bounded per-trial metrics (location agreement, duplication compatibility, and loss precision/recall). Unbounded counts and costs retain descriptive normal-approximation intervals. Percentile-bootstrap intervals reflect the empirical distribution and do not guarantee nominal coverage; intervals can also be degenerate when the observed values lie at a boundary. The original summary CSV is preserved; `summary/statistical_audit.csv` contains the recommended intervals and method labels.
 
 ## Factorial effects
 
