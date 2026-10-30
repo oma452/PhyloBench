@@ -6,17 +6,17 @@ Companion to `PhyloBench_manuscript.md`. Repository paths are relative to the re
 
 | Check | Evidence and method | Result |
 |---|---|---|
-| Base revision and CI | Latest `main` at `7b07689baec94c4494bf3090865391cbeee7bd65`; GitHub Actions run 41025006809 | All four Python 3.10–3.13 jobs succeeded. Python 3.12 job log reports 64 collected and passed test items. |
+| Base revision and CI | Current `main` at `2e4845529bcf6f3ce1af139c556ea0977a108939`; GitHub Actions run 41027204289 | All four Python 3.10–3.13 jobs succeeded. Python 3.12 job log reports 64 collected and passed test items. |
 | Local tests | Local runtime is Python 3.14; pytest and Biopython are not installed | The test suite was not run locally. CI evidence above is from the base revision, before these documentation edits. |
 | Resource-limit behavior | `src/phylo_bench/simulation.py`, `src/phylo_bench/model/simulation.py`, and `src/phylo_bench/experiments/runner.py` | Attempting to exceed either configured limit raises `SimulationLimitExceeded`; the runner does not convert it into a truncated trial. No archived exception ledger was found, so the archive cannot establish whether any run attempt reached a limit. |
-| Study 1 seed overlap | Study 1 metadata, pilot/full raw CSVs | Pilot IDs 101–103 per tier are reused in the full 10-seed run. All nine archived pilot seed/tier records match their corresponding full-run records. The full archive has 30 rows. |
-| Study 2 design and seed overlap | `experiments/2026-10-30-second-study/metadata/study_configuration.json`, raw trial CSV and pilot records | Pilot IDs 1001–1005 per cell are reused in the full 100-seed run for all nine cells. All 45 pilot seed/cell records match their corresponding full-run records. The full archive has 900 rows, not 945. The same IDs also appear across factorial conditions. |
+| Pilot-record reconciliation | Both study metadata files, all pilot and full-run CSVs | Study 1 has 9 pilot executions (3 seeds × 3 tiers); Study 2 has 45 (5 seeds × 9 cells); combined total is 54. Each pilot study/cell/seed key is unique, appears exactly once in its full-run dataset, and has matching shared fields. No pilot key is missing or duplicated. Full-run archives remain 30 and 900 rows. |
+| Study 2 seed design | `experiments/2026-10-30-second-study/metadata/study_configuration.json` and raw CSVs | Pilot IDs 1001–1005 per cell are reused in the full 100-seed run for all nine cells. The same seed IDs are reused across factorial conditions. Full aggregate and per-cell trial CSVs agree: 900 rows, 100 unique cell/seed keys per cell, with no duplicate cell/seed key. |
 | Study 2 summaries | `raw/all_trials.csv`, `summary/factorial_summary.csv` | Raw file has 900 rows; factorial summary has 99 metric/cell rows (11 metrics × 9 cells). Recomputed means and sample SDs for all 99 rows matched the stored summary. |
 | Extinction intervals | Raw trial CSV and `summary/statistical_audit.csv` | Recomputed Wilson intervals for all nine extinction rates matched the archived audit values. |
 | Bootstrap intervals | `analysis/statistical_audit.py` and archived audit outputs | The archived intervals and script were inspected; bootstrap intervals were not independently recomputed for this review. |
 | Empty-denominator counts | Study 2 raw trial CSV, source metric implementation | Among 831 non-extinct trials, loss precision has a non-empty denominator in 361; recall has a non-empty denominator in 382. The remaining 470 precision and 449 recall entries use the empty-denominator convention. Per-cell counts are in manuscript Table 5. |
 | Figure assets | Referenced Study 2 figure paths | The extinction heatmap and inferred-cost main-effects figure referenced by the manuscript exist. |
-| Reference metadata | Publisher, bibliographic, or indexing records consulted for cited literature | Bibliographic details cited in the manuscript were checked where available. DOI is left unspecified for Goodman et al. (1979) rather than guessed. |
+| Reference metadata | Publisher, bibliographic, or indexing records consulted for cited literature | Bibliographic details cited in the manuscript were checked where available. DOIs remain unspecified for Goodman et al. (1979) and Page and Charleston (1997); Zmasek and Eddy (2001) is identified by a verified PMID. |
 
 ## 2. Corrections and scientific interpretation
 
@@ -26,7 +26,7 @@ Both event-record and lineage-allocation limits raise `SimulationLimitExceeded`.
 
 ### Pilot records and seed design
 
-Pilot executions are not extra observations when the same seed/cell combinations are included in the full runs. Study 1 therefore has 30 archived full-run trials, not 39. Study 2 has 900, not 945. The five pilot IDs per Study 2 cell (45 executions total) repeat rows already in its 900-trial dataset.
+The pilot counts must be separated by study. Study 1 has 9 pilot executions: seeds 101–103 in each of three tiers. Study 2 has 45: seeds 1001–1005 in each of nine cells. The combined pilot archive therefore contains 54 executions (9 + 45); 54 is not the Study 2 count. All 9 Study 1 and all 45 Study 2 pilot study/cell/seed keys occur once in their corresponding full-run datasets, with matching shared trial fields. No pilot key is missing or duplicated. These overlapping pilot executions add no trial rows: the Study 1 and Study 2 full archives remain 30 and 900 rows, rather than 39 and 945.
 
 Within Study 2, seed IDs 1001–1100 are reused in each of the nine factorial conditions. This creates a common-seed design that can make cross-condition outcomes dependent. The archived analysis presents cell-wise summaries and descriptive contrasts; it does not estimate uncertainty for paired cross-condition contrasts. Seed reuse must not be described as establishing statistical independence.
 
@@ -47,6 +47,7 @@ The repository contains study configuration, raw and summary outputs, and an aud
 - Study 2 has 900 raw rows and 99 factorial summary rows. The archived audit contains nine cell-wise extinction intervals; these were checked against the raw trials.
 - The audit script's bootstrap intervals were not independently recomputed. Do not describe the whole audit output as byte-for-byte regenerated.
 - Study 1 contains 30 full-run raw rows. Its three pilot seeds per tier are included again in the full run.
+- Pilot files contain 9 Study 1 rows and 45 Study 2 rows (54 combined); all 54 overlap corresponding full-run study/cell/seed records. The full-run datasets have 30 and 900 rows respectively, and each aggregate agrees with its per-cell raw files.
 - Raw-data maxima for complete duplication or loss counts do not establish whether any simulation exceeded configured event or lineage limits.
 
 ## 4. Repository support and limitations
@@ -66,4 +67,4 @@ Additional provenance limits: original study-generation and figure scripts are a
 
 ## 5. Bibliography and author inputs
 
-Bibliographic records were checked for the manuscript's cited works against available publisher/index records. The manuscript now includes the Wilson interval and bootstrap references. DOIs remain unverified for Goodman et al. (1979) and Page and Charleston (1997); Zmasek and Eddy (2001) is identified by its verified PMID. These identifiers were not guessed. Author identity, affiliations, and correspondence are not inferable from repository evidence and remain placeholders for author completion.
+Bibliographic records were checked for the manuscript's cited works against available publisher/index records. The manuscript includes the Wilson interval and bootstrap references. DOIs remain unverified for Goodman et al. (1979) and Page and Charleston (1997); Zmasek and Eddy (2001) is identified by its verified PMID. These identifiers were not guessed. Author identity, affiliations, correspondence, funding, acknowledgements, and author contributions are not inferable from repository evidence and require author input. Generative AI assistance was used for research assessment and prose editing; authors should provide any venue-required disclosure, including tool/model details, and review all final content.
