@@ -84,6 +84,12 @@ branch compatibility, because exact duplication time is generally not
 identifiable from extant leaves. Extinct trials are counted separately and
 are not assigned fabricated inferred metrics.
 
+Some evaluator ratios are assigned 1.0 when their denominator is empty. This
+is a convention for an undefined ratio, not evidence of successful event
+recovery. Interpret bounded metric means alongside valid-observation counts
+and their event denominators, especially loss precision and recall, which may
+have no inferred or identifiable losses to evaluate.
+
 ## Research reports
 
 The [second study report](experiments/2026-10-30-second-study/reports/study_report.md)
