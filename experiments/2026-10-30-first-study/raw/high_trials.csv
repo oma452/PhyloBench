@@ -1,0 +1,11 @@
+seed,extinct,complete_duplications,complete_losses,inferred_duplications,inferred_losses,inferred_cost,identifiable_loss_count,exact_event_location_agreement,duplication_branch_compatibility,loss_branch_precision,loss_branch_recall
+101,False,6,3,5,2,7.0,3,1.0,1.0,1.0,0.6666666666666666
+102,False,2,5,0,1,1.0,1,1.0,1.0,1.0,1.0
+103,False,0,1,0,1,1.0,1,1.0,1.0,1.0,1.0
+104,False,4,5,1,1,2.0,2,1.0,1.0,0.0,0.0
+105,False,2,2,1,1,2.0,2,1.0,1.0,1.0,0.5
+106,False,2,3,2,2,4.0,1,1.0,1.0,0.5,1.0
+107,False,8,5,4,0,4.0,5,1.0,1.0,1.0,0.0
+108,False,6,2,6,2,8.0,2,1.0,1.0,1.0,1.0
+109,False,2,2,1,1,2.0,2,1.0,1.0,1.0,0.5
+110,False,6,3,4,1,5.0,3,1.0,1.0,1.0,0.3333333333333333

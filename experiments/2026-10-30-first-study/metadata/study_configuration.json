@@ -1,0 +1,117 @@
+{
+  "costs": {
+    "duplication_cost": 1.0,
+    "loss_cost": 1.0
+  },
+  "high_config": {
+    "duplication_cost": 1.0,
+    "duplication_rate": 0.5,
+    "loss_cost": 1.0,
+    "loss_rate": 0.5,
+    "max_events": 100000,
+    "max_lineages": 10000,
+    "seeds": [
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110
+    ],
+    "species_tree_newick": "((A:1,B:1)AB:1,(C:1,D:1)CD:1)ROOT;"
+  },
+  "high_runtime_seconds": 0.003382795000106853,
+  "limits": {
+    "max_events": 100000,
+    "max_lineages": 10000
+  },
+  "low_config": {
+    "duplication_cost": 1.0,
+    "duplication_rate": 0.01,
+    "loss_cost": 1.0,
+    "loss_rate": 0.01,
+    "max_events": 100000,
+    "max_lineages": 10000,
+    "seeds": [
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110
+    ],
+    "species_tree_newick": "((A:1,B:1)AB:1,(C:1,D:1)CD:1)ROOT;"
+  },
+  "low_runtime_seconds": 0.0036459160000958946,
+  "medium_config": {
+    "duplication_cost": 1.0,
+    "duplication_rate": 0.1,
+    "loss_cost": 1.0,
+    "loss_rate": 0.1,
+    "max_events": 100000,
+    "max_lineages": 10000,
+    "seeds": [
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110
+    ],
+    "species_tree_newick": "((A:1,B:1)AB:1,(C:1,D:1)CD:1)ROOT;"
+  },
+  "medium_runtime_seconds": 0.0026354929996159626,
+  "pilot": {
+    "extinct_trials": {
+      "high": 0,
+      "low": 0,
+      "medium": 0
+    },
+    "seeds": [
+      101,
+      102,
+      103
+    ],
+    "status": "completed"
+  },
+  "rate_tiers": {
+    "high": {
+      "duplication_rate": 0.5,
+      "loss_rate": 0.5
+    },
+    "low": {
+      "duplication_rate": 0.01,
+      "loss_rate": 0.01
+    },
+    "medium": {
+      "duplication_rate": 0.1,
+      "loss_rate": 0.1
+    }
+  },
+  "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110
+  ],
+  "species_tree_newick": "((A:1,B:1)AB:1,(C:1,D:1)CD:1)ROOT;",
+  "study_id": "phylo-bench-first-reproducible-study-2026-10-30"
+}

@@ -1,0 +1,11 @@
+metric,mean,standard_deviation
+complete_duplications,0.05,0.2190429135575903
+complete_losses,0.04,0.19694638556693236
+inferred_duplications,0.05,0.2190429135575903
+inferred_losses,0.04,0.19694638556693236
+inferred_cost,0.09,0.32082595426382343
+exact_event_location_agreement,1.0,0.0
+identifiable_loss_count,0.04,0.19694638556693236
+duplication_branch_compatibility,1.0,0.0
+loss_branch_precision,1.0,0.0
+loss_branch_recall,1.0,0.0
