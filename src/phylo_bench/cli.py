@@ -10,7 +10,9 @@ from typing import Any
 
 from phylo_bench.experiments import ExperimentConfig, run_experiment
 from phylo_bench.export import write_figure, write_rows_csv, write_summary_csv
+from phylo_bench.io import parse_newick
 from phylo_bench.report import write_research_report
+from phylo_bench.simulation import validate_simulation_species_tree
 from phylo_bench.visualization import plot_metric_summary
 
 
@@ -77,7 +79,10 @@ def _load_config(path: Path) -> ExperimentConfig:
     if missing:
         raise ValueError(f"missing required configuration field(s): {', '.join(missing)}")
     try:
-        return ExperimentConfig(**data)
+        config = ExperimentConfig(**data)
+        species_tree = parse_newick(config.species_tree_newick)
+        validate_simulation_species_tree(species_tree)
+        return config
     except (TypeError, ValueError) as exc:
         raise ValueError(f"invalid experiment configuration: {exc}") from exc
 

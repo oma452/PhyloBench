@@ -3,6 +3,11 @@ import csv, hashlib, json, math, random
 from collections import defaultdict
 from pathlib import Path
 from statistics import mean, stdev
+from audit_helpers import (
+    compare_summary_record,
+    extinction_statistics,
+    verify_summary_errors,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / 'raw' / 'all_trials.csv'
@@ -62,7 +67,9 @@ for (d,l), cell in sorted(cells.items()):
     for metric in METRICS:
         valid = [float(r[metric]) for r in cell if r[metric] != '']
         avg, sd, mcse, ci = normal_ci(valid)
-        old = summary_lookup[(d,l,metric)]
+        mean_error, sd_error = compare_summary_record(
+            summary_lookup, (d, l, metric), avg, sd
+        )
         validation.append({
             'duplication_rate': d, 'loss_rate': l, 'metric': metric,
             'raw_trials': len(cell), 'valid_observations': len(valid),
@@ -70,8 +77,8 @@ for (d,l), cell in sorted(cells.items()):
             'mean': avg, 'sample_sd': sd, 'mcse': mcse,
             'normal_ci_lower': None if ci is None else ci[0],
             'normal_ci_upper': None if ci is None else ci[1],
-            'summary_mean_abs_error': None if avg is None else abs(avg-float(old['mean'])),
-            'summary_sd_abs_error': None if sd is None else abs(sd-float(old['standard_deviation'])),
+            'summary_mean_abs_error': mean_error,
+            'summary_sd_abs_error': sd_error,
         })
 
 # Add bounded alternatives: Wilson for extinction; deterministic bootstrap for bounded per-trial metrics.
@@ -93,11 +100,17 @@ for record in validation:
         record['recommended_ci_upper'] = record['normal_ci_upper']
 # Extinction is not in the original metric list; append it with Wilson and MCSE.
 for (d,l), cell in sorted(cells.items()):
-    n = len(cell); successes = sum(r['extinct']=='True' for r in cell); p = successes/n
-    sd = math.sqrt(p*(1-p)) if n else None
-    mcse = sd/math.sqrt(n) if n else None
+    n = len(cell)
+    extinct = [r['extinct'] == 'True' for r in cell]
+    successes = sum(extinct)
+    p, sd, mcse = extinction_statistics(extinct)
     low, high = wilson(successes,n)
-    validation.append({'duplication_rate':d,'loss_rate':l,'metric':'extinction_frequency','raw_trials':n,'valid_observations':n,'extinct_trials':successes,'mean':p,'sample_sd':sd,'mcse':mcse,'normal_ci_lower':None if mcse is None else p-Z*mcse,'normal_ci_upper':None if mcse is None else p+Z*mcse,'summary_mean_abs_error':0.0,'summary_sd_abs_error':None,'recommended_interval':'wilson_score','recommended_ci_lower':low,'recommended_ci_upper':high})
+    mean_error, sd_error = compare_summary_record(
+        summary_lookup, (d, l, 'extinction_frequency'), p, sd
+    )
+    validation.append({'duplication_rate':d,'loss_rate':l,'metric':'extinction_frequency','raw_trials':n,'valid_observations':n,'extinct_trials':successes,'mean':p,'sample_sd':sd,'mcse':mcse,'normal_ci_lower':p-Z*mcse,'normal_ci_upper':p+Z*mcse,'summary_mean_abs_error':mean_error,'summary_sd_abs_error':sd_error,'recommended_interval':'wilson_score','recommended_ci_lower':low,'recommended_ci_upper':high})
+
+verify_summary_errors(validation)
 
 fields=['duplication_rate','loss_rate','metric','raw_trials','valid_observations','extinct_trials','mean','sample_sd','mcse','normal_ci_lower','normal_ci_upper','summary_mean_abs_error','summary_sd_abs_error','recommended_interval','recommended_ci_lower','recommended_ci_upper']
 with AUDIT_SUMMARY.open('w',newline='') as f:
@@ -133,7 +146,7 @@ for metric in ('complete_duplications','complete_losses','inferred_cost'):
         figure_check.append({'metric':metric,'duplication_rate':d,'loss_rate':l,'raw_mean':mean(vals) if vals else None,'summary_mean':float(summary_lookup[(d,l,metric)]['mean']) if vals else None,'matches':abs(mean(vals)-float(summary_lookup[(d,l,metric)]['mean']))<1e-12 if vals else True})
 assert all(x['matches'] for x in figure_check)
 
-lines=['# Statistical audit: second PhyloBench factorial study','','## Scope','',f'Raw data contain {len(rows)} trials across {len(cells)} cells. Every cell contains exactly 100 trials. This audit reads existing CSV artifacts only and does not rerun simulation.','','## Statistical verification','', 'Means and sample standard deviations match the raw CSV values to floating-point tolerance. MCSE is sample SD divided by the square root of valid observations. Original summary tables use the normal approximation mean ± 1.96×MCSE.', '', '| Cell | Extinct | Valid inferred observations |', '|---|---:|---:|']
+lines=['# Statistical audit: second PhyloBench factorial study','','## Scope','',f'Raw data contain {len(rows)} trials across {len(cells)} cells. Every cell contains exactly 100 trials. This audit reads existing CSV artifacts only and does not rerun simulation.','','## Statistical verification','', 'Means and sample standard deviations match the raw CSV values to floating-point tolerance. MCSE is sample SD divided by the square root of valid observations. The audit CSV reports sample SD with the n-1 denominator for extinction frequency, while its MCSE retains the plug-in Bernoulli convention sqrt(p * (1 - p)) / sqrt(n). Original summary tables use the normal approximation mean +/- 1.96 * MCSE.', '', '| Cell | Extinct | Valid inferred observations |', '|---|---:|---:|']
 for (d,l),cell in sorted(cells.items()):
  extinct=sum(r['extinct']=='True' for r in cell); valid=100-extinct
  lines.append(f'| d={d:g}, l={l:g} | {extinct}/100 | {valid} |')

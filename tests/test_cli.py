@@ -56,6 +56,33 @@ def test_cli_inspect_prints_normalized_configuration(tmp_path: Path, capsys):
     assert output["max_events"] == 100
 
 
+@pytest.mark.parametrize(
+    ("newick", "message"),
+    [
+        ("((A:1,B:1)S;", "invalid Newick input"),
+        ("(A:0,B:1)S;", "positive finite branch lengths"),
+        ("A;", "at least two species"),
+        ("(A:1,B:1,C:1)S;", "not binary"),
+    ],
+)
+def test_cli_inspect_rejects_invalid_simulator_trees(
+    tmp_path: Path, capsys, newick: str, message: str
+):
+    config = tmp_path / "experiment.json"
+    _config(config)
+    data = json.loads(config.read_text(encoding="utf-8"))
+    data["species_tree_newick"] = newick
+    config.write_text(json.dumps(data), encoding="utf-8")
+
+    with pytest.raises(SystemExit) as error:
+        main(["inspect", str(config)])
+
+    assert error.value.code == 2
+    captured = capsys.readouterr()
+    assert "invalid experiment configuration" in captured.err
+    assert message in captured.err
+
+
 def test_cli_reports_helpful_validation_errors(tmp_path: Path):
     config = tmp_path / "invalid.json"
     config.write_text(
