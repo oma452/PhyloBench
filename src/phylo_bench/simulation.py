@@ -381,17 +381,13 @@ def evaluate_simulation(
                 compatible_duplications += _location_match(
                     inferred, simulated, simulation.species_tree
                 )
-    true_loss_branches = [
-        (event.species_parent_id, event.species_child_id)
-        for event in simulation.events
-        if event.event_type is SimulationEventType.LOSS
-    ]
+    identifiable_loss_branches = _identifiable_loss_branches(simulation)
     inferred_loss_branches = [
         (event.species_parent_id, event.species_child_id)
         for event in reconciliation.losses
     ]
     precision, recall = _multiset_precision_recall(
-        inferred_loss_branches, true_loss_branches
+        inferred_loss_branches, identifiable_loss_branches
     )
     return EvaluationMetrics(
         inferred_duplication_count=reconciliation.duplication_count,
@@ -416,11 +412,14 @@ def evaluate_simulation(
         ),
         loss_branch_precision=precision,
         loss_branch_recall=recall,
+        identifiable_loss_count=len(identifiable_loss_branches),
         ambiguity_note=(
-            "Loss branch precision and recall compare all complete-history "
-            "losses; hidden losses are not observable exact-recovery targets. "
-            "Inferred cost is reported independently because alternative "
-            "histories can have identical extant evidence."
+            "Complete-loss count includes every simulated loss. Loss branch "
+            "precision and recall compare only losses whose split sibling has "
+            "an extant descendant, making the loss structurally identifiable "
+            "from the observed family. Hidden losses are excluded rather than "
+            "treated as false negatives; inferred cost remains an independent "
+            "reconciliation quantity."
         ),
     )
 
@@ -433,6 +432,56 @@ def _visible_event_nodes(simulation: SimulationResult) -> set[int]:
         for node in simulation.observed_gene_tree.nodes()
         if not node.is_leaf
     }
+
+
+def _identifiable_loss_branches(
+    simulation: SimulationResult,
+) -> list[tuple[int | None, int | None]]:
+    """Return loss branches supported by an extant sibling lineage.
+
+    A simulated loss has an observable structural witness only when its
+    lineage was created by a speciation or duplication split and at least one
+    sibling lineage from that split has an extant descendant. Losses with no
+    such witness are hidden historical events and are not exact-recovery
+    targets.
+    """
+
+    parent_by_lineage: dict[int, int] = {}
+    siblings_by_lineage: dict[int, tuple[int, ...]] = {}
+    for event in simulation.events:
+        if event.event_type not in (
+            SimulationEventType.SPECIATION,
+            SimulationEventType.DUPLICATION,
+        ) or event.lineage_id is None:
+            continue
+        for child_id in event.child_lineage_ids:
+            parent_by_lineage[child_id] = event.lineage_id
+            siblings_by_lineage[child_id] = tuple(
+                sibling for sibling in event.child_lineage_ids if sibling != child_id
+            )
+
+    extant_lineages = {
+        event.lineage_id
+        for event in simulation.events
+        if event.event_type is SimulationEventType.EXTANT_GENE
+        and event.lineage_id is not None
+    }
+    extant_ancestry: set[int] = set()
+    for lineage_id in extant_lineages:
+        current: int | None = lineage_id
+        while current is not None and current not in extant_ancestry:
+            extant_ancestry.add(current)
+            current = parent_by_lineage.get(current)
+
+    return [
+        (event.species_parent_id, event.species_child_id)
+        for event in simulation.events
+        if event.event_type is SimulationEventType.LOSS
+        and any(
+            sibling in extant_ancestry
+            for sibling in siblings_by_lineage.get(event.lineage_id, ())
+        )
+    ]
 
 
 def _location_match(

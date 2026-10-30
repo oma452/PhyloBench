@@ -1,0 +1,6 @@
+seed,extinct,complete_duplications,complete_losses,inferred_duplications,inferred_losses,inferred_cost,identifiable_loss_count,exact_event_location_agreement,duplication_branch_compatibility,loss_branch_precision,loss_branch_recall
+1001,False,2,1,2,1,3.0,1,1.0,1.0,1.0,1.0
+1002,False,6,0,6,0,6.0,0,1.0,1.0,1.0,1.0
+1003,False,2,1,1,0,1.0,1,1.0,1.0,1.0,0.0
+1004,False,6,0,6,0,6.0,0,1.0,1.0,1.0,1.0
+1005,False,0,0,0,0,0.0,0,1.0,1.0,1.0,1.0

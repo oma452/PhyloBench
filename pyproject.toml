@@ -9,7 +9,11 @@ description = "Reproducible benchmarking and visualization for gene tree-species
 requires-python = ">=3.10"
 dependencies = [
     "biopython>=1.81",
+    "matplotlib>=3.7",
 ]
+
+[project.scripts]
+phylo-bench = "phylo_bench.cli:main"
 
 [project.optional-dependencies]
 test = [

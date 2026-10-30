@@ -63,7 +63,7 @@ class SimulationResult:
 
 @dataclass(frozen=True, slots=True)
 class EvaluationMetrics:
-    """Comparison of an inferred reconciliation with simulated history."""
+    """Comparison of inferred events with complete and identifiable truth."""
 
     inferred_duplication_count: int
     inferred_loss_count: int
@@ -79,6 +79,7 @@ class EvaluationMetrics:
     duplication_branch_compatibility: float
     loss_branch_precision: float
     loss_branch_recall: float
+    identifiable_loss_count: int
     ambiguity_note: str
 
 
