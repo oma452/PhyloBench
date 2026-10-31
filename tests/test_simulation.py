@@ -52,6 +52,31 @@ def test_zero_rates_preserve_root_speciation_and_reconcile():
     assert evaluation.metrics.exact_event_location_agreement == 1.0
 
 
+def test_single_species_tree_is_rejected_by_simulator():
+    with pytest.raises(ValueError, match="at least two species"):
+        simulate_gene_family(
+            parse_newick("A;"), duplication_rate=0, loss_rate=0, seed=7
+        )
+
+
+def test_two_species_tree_with_zero_rates_retains_both_species():
+    result = simulate_gene_family(
+        parse_newick("(A:1,B:1)R;"),
+        duplication_rate=0,
+        loss_rate=0,
+        seed=7,
+    )
+
+    assert not result.extinct
+    assert result.observed_gene_tree is not None
+    assert len(result.gene_to_species) == 2
+    assert set(result.gene_to_species.values()) == {"A", "B"}
+    assert sum(
+        event.event_type is SimulationEventType.SPECIATION
+        for event in result.events
+    ) == 1
+
+
 def test_fixed_seed_is_reproducible():
     first = simulate_gene_family(
         species_tree(), duplication_rate=0.5, loss_rate=0.2, seed=19

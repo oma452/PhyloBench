@@ -70,8 +70,7 @@ def simulate_gene_family(
         raise ValueError("seed must be an integer")
     _validate_limit("max_events", max_events)
     _validate_limit("max_lineages", max_lineages)
-    validate_tree(species_tree, require_binary=True)
-    _validate_branch_lengths(species_tree)
+    validate_simulation_species_tree(species_tree)
 
     rng = Random(seed)
     events: list[SimulationEvent] = []
@@ -535,3 +534,16 @@ def _validate_branch_lengths(species_tree: RootedTree) -> None:
                 "simulation requires positive finite branch lengths on all "
                 "non-root species nodes"
             )
+
+
+def validate_simulation_species_tree(species_tree: RootedTree) -> None:
+    """Validate a species tree supported by the simulator.
+
+    Simulation models a speciation at the root, so a tree with fewer than two
+    species cannot be represented by the simulator's binary event process.
+    """
+
+    validate_tree(species_tree, require_binary=True)
+    if species_tree.root.is_leaf:
+        raise ValueError("simulation requires at least two species")
+    _validate_branch_lengths(species_tree)

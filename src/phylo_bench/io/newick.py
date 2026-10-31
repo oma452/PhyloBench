@@ -30,11 +30,12 @@ def parse_newick(newick: str) -> RootedTree:
     stripped = newick.strip()
     if not stripped:
         raise ValueError("Newick input must not be empty")
-    if not stripped.endswith(";"):
+    lexical = _mask_quoted_labels_and_comments(stripped)
+    if not lexical.endswith(";"):
         raise ValueError("Newick input must end with exactly one semicolon")
-    if ";" in stripped[:-1]:
+    if ";" in lexical[:-1]:
         raise ValueError("Newick input must contain exactly one terminal semicolon")
-    _validate_branch_lengths(stripped[:-1])
+    _validate_branch_lengths(lexical[:-1])
 
     try:
         trees = list(Phylo.parse(StringIO(newick), "newick"))
@@ -65,6 +66,45 @@ def parse_newick(newick: str) -> RootedTree:
 
 
 _BRANCH_LENGTH = re.compile(r":([^,();\[\]\s]*)")
+
+
+def _mask_quoted_labels_and_comments(newick: str) -> str:
+    """Blank quoted labels and bracket comments while preserving positions.
+
+    This lets delimiter checks and branch-length validation inspect Newick
+    syntax without treating colons or semicolons inside labels/comments as
+    structural tokens. Doubled apostrophes escape an apostrophe in a quoted
+    label; nested bracket comments are also masked.
+    """
+
+    characters = list(newick)
+    in_quote = False
+    comment_depth = 0
+    index = 0
+    while index < len(characters):
+        character = characters[index]
+        if in_quote:
+            characters[index] = " "
+            if character == "'":
+                if index + 1 < len(characters) and characters[index + 1] == "'":
+                    characters[index + 1] = " "
+                    index += 2
+                    continue
+                in_quote = False
+        elif comment_depth:
+            characters[index] = " "
+            if character == "[":
+                comment_depth += 1
+            elif character == "]":
+                comment_depth -= 1
+        elif character == "'":
+            characters[index] = " "
+            in_quote = True
+        elif character == "[":
+            characters[index] = " "
+            comment_depth = 1
+        index += 1
+    return "".join(characters)
 
 
 def _validate_branch_lengths(newick: str) -> None:

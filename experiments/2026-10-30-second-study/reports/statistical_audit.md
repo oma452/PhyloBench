@@ -8,7 +8,7 @@ The metadata records five pilot seeds (1001-1005) in each of the nine cells and 
 
 ## Statistical verification
 
-Means and sample standard deviations match the raw CSV values to floating-point tolerance. For ordinary metrics, MCSE is sample SD divided by the square root of valid observations. The original summary tables use the normal approximation `mean +/- 1.96 * MCSE`. For extinction frequency, MCSE uses the plug-in Bernoulli standard deviation `sqrt(p * (1 - p)) / sqrt(n)`; the recommended interval is Wilson score.
+Means and sample standard deviations match the raw CSV values to floating-point tolerance. For ordinary metrics, MCSE is sample SD divided by the square root of valid observations. The audit CSV reports sample SD with the n-1 denominator for extinction frequency, while its MCSE retains the plug-in Bernoulli convention `sqrt(p * (1 - p)) / sqrt(n)`. The original summary tables use the normal approximation `mean +/- 1.96 * MCSE`; the recommended interval for extinction frequency is Wilson score.
 
 | Cell | Extinct | Valid inferred observations |
 |---|---:|---:|
