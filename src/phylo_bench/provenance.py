@@ -12,6 +12,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
+from phylo_bench._build_info import (
+    BUILD_INFO_EMBEDDED,
+    EMBEDDED_DIRTY,
+    EMBEDDED_REVISION,
+)
 from phylo_bench.experiments.runner import ExperimentConfig
 from phylo_bench.io import atomic_write_text
 
@@ -20,6 +25,12 @@ _RUNTIME_DISTRIBUTIONS = ("phylo-bench", "biopython", "matplotlib")
 
 
 def _git_provenance() -> dict[str, str | bool | None]:
+    if BUILD_INFO_EMBEDDED:
+        return {
+            "revision": EMBEDDED_REVISION,
+            "working_tree_dirty": EMBEDDED_DIRTY,
+        }
+
     package_root = Path(__file__).resolve().parents[2]
     try:
         revision = subprocess.run(

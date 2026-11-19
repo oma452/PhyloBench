@@ -165,6 +165,44 @@ def test_cli_run_writes_provenance_manifest(tmp_path: Path):
         assert actual == expected
 
 
+def test_editable_installation_reports_git_revision(monkeypatch):
+    from phylo_bench._build_info import BUILD_INFO_EMBEDDED
+    from phylo_bench.provenance import _git_provenance
+
+    assert BUILD_INFO_EMBEDDED is False
+    provenance = _git_provenance()
+    assert provenance["revision"]
+
+
+def test_wheel_embedded_revision_does_not_call_git(monkeypatch):
+    import phylo_bench.provenance as provenance
+
+    monkeypatch.setattr(provenance, "BUILD_INFO_EMBEDDED", True)
+    monkeypatch.setattr(provenance, "EMBEDDED_REVISION", "abc123")
+    monkeypatch.setattr(provenance, "EMBEDDED_DIRTY", False)
+
+    def unexpected_git(*args, **kwargs):
+        raise AssertionError("wheel provenance must not invoke Git")
+
+    monkeypatch.setattr(provenance.subprocess, "run", unexpected_git)
+    assert provenance._git_provenance() == {
+        "revision": "abc123",
+        "working_tree_dirty": False,
+    }
+
+
+def test_wheel_without_git_metadata_reports_null(monkeypatch):
+    import phylo_bench.provenance as provenance
+
+    monkeypatch.setattr(provenance, "BUILD_INFO_EMBEDDED", True)
+    monkeypatch.setattr(provenance, "EMBEDDED_REVISION", None)
+    monkeypatch.setattr(provenance, "EMBEDDED_DIRTY", None)
+    assert provenance._git_provenance() == {
+        "revision": None,
+        "working_tree_dirty": None,
+    }
+
+
 def test_visualizations_return_figures_and_can_be_saved(tmp_path: Path):
     species, gene = _trees()
     reconciliation = reconcile(gene, species, {"A": "A", "B": "B"})

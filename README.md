@@ -147,6 +147,12 @@ The repository includes `requirements-lock-py312.txt` as a resolved
 environment record for Python 3.12 validation. The package itself supports
 Python 3.10 and later.
 
+For wheel distributions, build metadata embeds the exact Git revision used
+for the build. Installed wheels therefore report that revision in experiment
+manifests without requiring a `.git` directory. If Git metadata is unavailable
+at build time, the manifest reports `"revision": null`. Editable installations
+continue to detect the current Git revision from the source checkout.
+
 ## Continuous integration
 
 GitHub Actions runs the complete test suite on every push and pull request
