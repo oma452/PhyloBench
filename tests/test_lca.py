@@ -36,7 +36,7 @@ def test_lca_identical_root_and_ancestor_descendant_nodes():
 
 def test_indexed_tree_rejects_topology_mutation():
     tree = parse_newick("(A,B)R;")
-    index = LCAIndex(tree)
+    LCAIndex(tree)
     with pytest.raises(RuntimeError, match="frozen"):
         tree.root.add_child(tree.node_by_id(1))
     with pytest.raises(AttributeError):

@@ -60,7 +60,9 @@ phylo-bench inspect experiment.json
 ```
 
 Run the experiment and write `trials.csv`, `summary.csv`, `metadata.json`,
-`report.md`, and measured PNG charts:
+`run_manifest.json`, `report.md`, and measured PNG charts. The manifest
+records the configuration, command line, source revision, Python/platform
+information, dependency versions, and SHA-256 hashes for generated artifacts:
 
 ```bash
 phylo-bench run experiment.json --output-dir results/experiment-1
@@ -68,6 +70,31 @@ phylo-bench run experiment.json --output-dir results/experiment-1
 
 The CLI uses the listed seeds exactly and preserves the configured simulation
 limits.
+
+Archived studies can be regenerated into a new directory without modifying
+the committed research artifacts:
+
+```bash
+python experiments/scripts/reproduce_study.py \
+  --study first \
+  --output-dir /tmp/phylo-bench-first-reproduction
+python experiments/scripts/reproduce_study.py \
+  --study second \
+  --output-dir /tmp/phylo-bench-second-reproduction
+```
+
+These scripts use the archived configurations and seeds through the current
+CLI. They provide an executable regeneration workflow, but cannot claim
+byte-for-byte identity with the archived outputs because the original study
+generation scripts were not preserved.
+
+Study 2 reuses the same seed IDs across factorial cells. For descriptive
+paired common-seed contrasts, run:
+
+```bash
+python experiments/2026-10-30-second-study/analysis/paired_seed_analysis.py \
+  --output /tmp/phylo-bench-paired-contrasts.csv
+```
 
 Matplotlib renderers in `phylo_bench.visualization` produce species-tree,
 gene-tree, reconciliation, and measured performance figures. Visualization
@@ -107,6 +134,18 @@ conditional on the study's simulator settings and species-tree design.
 
 The test suite covers tree algorithms, reconciliation, simulation invariants,
 reproducibility, CSV/Markdown generation, and Matplotlib figure generation.
+
+Optional quality checks use the `quality` extra:
+
+```bash
+.venv/bin/ruff check src tests experiments/scripts
+.venv/bin/mypy src/phylo_bench
+.venv/bin/pytest --cov=phylo_bench --cov-report=term-missing
+```
+
+The repository includes `requirements-lock-py312.txt` as a resolved
+environment record for Python 3.12 validation. The package itself supports
+Python 3.10 and later.
 
 ## Continuous integration
 

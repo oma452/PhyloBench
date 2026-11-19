@@ -3,23 +3,27 @@
 from __future__ import annotations
 
 import csv
+import io
 import json
 from dataclasses import asdict
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
+
+from phylo_bench.io import atomic_write_text
 
 
-def write_rows_csv(path: str | Path, rows: Iterable[object]) -> None:
+def write_rows_csv(path: str | Path, rows: Iterable[Any]) -> None:
     """Write dataclass rows to CSV using their declared fields."""
 
     rows = list(rows)
     if not rows:
         raise ValueError("cannot export an empty row collection")
     records = [asdict(row) for row in rows]
-    with Path(path).open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(records[0]))
-        writer.writeheader()
-        writer.writerows(records)
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(buffer, fieldnames=list(records[0]))
+    writer.writeheader()
+    writer.writerows(records)
+    atomic_write_text(path, buffer.getvalue())
 
 
 def write_summary_csv(path: str | Path, summary: object) -> None:
@@ -28,11 +32,12 @@ def write_summary_csv(path: str | Path, summary: object) -> None:
     metrics = getattr(summary, "metrics", None)
     if not isinstance(metrics, dict):
         raise ValueError("summary must expose a metrics dictionary")
-    with Path(path).open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.writer(handle)
-        writer.writerow(["metric", "mean", "standard_deviation"])
-        for name, (average, deviation) in metrics.items():
-            writer.writerow([name, average, deviation])
+    buffer = io.StringIO(newline="")
+    writer = csv.writer(buffer)
+    writer.writerow(["metric", "mean", "standard_deviation"])
+    for name, (average, deviation) in metrics.items():
+        writer.writerow([name, average, deviation])
+    atomic_write_text(path, buffer.getvalue())
 
 
 def write_figure(figure, path: str | Path, *, dpi: int = 180) -> None:
@@ -45,4 +50,16 @@ def write_figure(figure, path: str | Path, *, dpi: int = 180) -> None:
         metadata["PhyloBenchConfig"] = json.dumps(asdict(config), sort_keys=True)
     if seeds is not None:
         metadata["PhyloBenchSeeds"] = json.dumps(list(seeds))
-    figure.savefig(path, dpi=dpi, bbox_inches="tight", metadata=metadata or None)
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output.with_name(f".{output.stem}.figure.tmp{output.suffix}")
+    try:
+        figure.savefig(
+            temporary,
+            dpi=dpi,
+            bbox_inches="tight",
+            metadata=metadata or None,
+        )
+        temporary.replace(output)
+    finally:
+        temporary.unlink(missing_ok=True)

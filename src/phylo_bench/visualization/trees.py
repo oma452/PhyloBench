@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from typing import cast
 
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
+import matplotlib.pyplot as plt
 from phylo_bench.model.tree import RootedTree, TreeNode
 
 
@@ -48,9 +49,10 @@ def plot_species_tree(tree: RootedTree, *, ax: Axes | None = None) -> Figure:
     """Render a rooted species tree and return its owning figure."""
 
     if ax is None:
-        figure, ax = __import__("matplotlib.pyplot", fromlist=["subplots"]).subplots()
+        figure_value, ax = plt.subplots()
+        figure = cast(Figure, figure_value)
     else:
-        figure = ax.figure
+        figure = cast(Figure, ax.figure)
     _draw_tree(ax, tree, "Species tree")
     return figure
 
@@ -59,8 +61,9 @@ def plot_gene_tree(tree: RootedTree, *, ax: Axes | None = None) -> Figure:
     """Render a rooted observed gene tree and return its owning figure."""
 
     if ax is None:
-        figure, ax = __import__("matplotlib.pyplot", fromlist=["subplots"]).subplots()
+        figure_value, ax = plt.subplots()
+        figure = cast(Figure, figure_value)
     else:
-        figure = ax.figure
+        figure = cast(Figure, ax.figure)
     _draw_tree(ax, tree, "Gene tree")
     return figure

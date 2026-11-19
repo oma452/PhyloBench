@@ -7,6 +7,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from phylo_bench.experiments.runner import ExperimentConfig, ExperimentRow, ExperimentSummary
+from phylo_bench.io import atomic_write_text
 
 
 def write_research_report(
@@ -70,4 +71,4 @@ def write_research_report(
         "```",
         "",
     ])
-    Path(path).write_text("\n".join(lines), encoding="utf-8")
+    atomic_write_text(path, "\n".join(lines))

@@ -75,8 +75,15 @@ class EvaluationMetrics:
     duplication_count_error: int
     matched_event_count: int
     observable_event_count: int
+    exact_event_location_matches: int
+    exact_event_location_denominator: int
     exact_event_location_agreement: float
+    duplication_branch_compatible_count: int
+    duplication_branch_denominator: int
     duplication_branch_compatibility: float
+    loss_branch_match_count: int
+    loss_precision_denominator: int
+    loss_recall_denominator: int
     loss_branch_precision: float
     loss_branch_recall: float
     identifiable_loss_count: int

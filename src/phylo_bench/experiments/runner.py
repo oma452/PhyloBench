@@ -58,8 +58,24 @@ class ExperimentRow:
     inferred_losses: int | None
     inferred_cost: float | None
     identifiable_loss_count: int | None
+    matched_event_count: int | None
+    observable_event_count: int | None
+    observable_duplication_count: int | None
+    observable_speciation_count: int | None
+    duplication_count_error: int | None
+    exact_event_location_matches: int | None
+    exact_event_location_denominator: int | None
     exact_event_location_agreement: float | None
+    duplication_branch_compatible_count: int | None
+    duplication_branch_denominator: int | None
     duplication_branch_compatibility: float | None
+    loss_branch_match_count: int | None
+    loss_precision_denominator: int | None
+    loss_recall_denominator: int | None
+    exact_event_location_convention_assigned: bool | None
+    duplication_branch_convention_assigned: bool | None
+    loss_precision_convention_assigned: bool | None
+    loss_recall_convention_assigned: bool | None
     loss_branch_precision: float | None
     loss_branch_recall: float | None
 
@@ -73,6 +89,7 @@ class ExperimentSummary:
     metrics: dict[str, tuple[float | None, float | None]]
     config: ExperimentConfig
     seeds: tuple[int, ...]
+    valid_counts: dict[str, int]
 
 
 def run_experiment(config: ExperimentConfig) -> tuple[tuple[ExperimentRow, ...], ExperimentSummary]:
@@ -91,18 +108,40 @@ def run_experiment(config: ExperimentConfig) -> tuple[tuple[ExperimentRow, ...],
         if simulation.extinct:
             rows.append(
                 ExperimentRow(
-                    seed,
-                    True,
-                    sum(event.event_type is SimulationEventType.DUPLICATION for event in simulation.events),
-                    sum(event.event_type is SimulationEventType.LOSS for event in simulation.events),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
+                    seed=seed,
+                    extinct=True,
+                    complete_duplications=sum(
+                        event.event_type is SimulationEventType.DUPLICATION
+                        for event in simulation.events
+                    ),
+                    complete_losses=sum(
+                        event.event_type is SimulationEventType.LOSS
+                        for event in simulation.events
+                    ),
+                    inferred_duplications=None,
+                    inferred_losses=None,
+                    inferred_cost=None,
+                    identifiable_loss_count=None,
+                    matched_event_count=None,
+                    observable_event_count=None,
+                    observable_duplication_count=None,
+                    observable_speciation_count=None,
+                    duplication_count_error=None,
+                    exact_event_location_matches=None,
+                    exact_event_location_denominator=None,
+                    exact_event_location_agreement=None,
+                    duplication_branch_compatible_count=None,
+                    duplication_branch_denominator=None,
+                    duplication_branch_compatibility=None,
+                    loss_branch_match_count=None,
+                    loss_precision_denominator=None,
+                    loss_recall_denominator=None,
+                    exact_event_location_convention_assigned=None,
+                    duplication_branch_convention_assigned=None,
+                    loss_precision_convention_assigned=None,
+                    loss_recall_convention_assigned=None,
+                    loss_branch_precision=None,
+                    loss_branch_recall=None,
                 )
             )
             continue
@@ -114,18 +153,52 @@ def run_experiment(config: ExperimentConfig) -> tuple[tuple[ExperimentRow, ...],
         metrics = evaluation.metrics
         rows.append(
             ExperimentRow(
-                seed,
-                False,
-                metrics.complete_duplication_count,
-                metrics.complete_loss_count,
-                metrics.inferred_duplication_count,
-                metrics.inferred_loss_count,
-                metrics.inferred_cost,
-                metrics.identifiable_loss_count,
-                metrics.exact_event_location_agreement,
-                metrics.duplication_branch_compatibility,
-                metrics.loss_branch_precision,
-                metrics.loss_branch_recall,
+                seed=seed,
+                extinct=False,
+                complete_duplications=metrics.complete_duplication_count,
+                complete_losses=metrics.complete_loss_count,
+                inferred_duplications=metrics.inferred_duplication_count,
+                inferred_losses=metrics.inferred_loss_count,
+                inferred_cost=metrics.inferred_cost,
+                identifiable_loss_count=metrics.identifiable_loss_count,
+                matched_event_count=metrics.matched_event_count,
+                observable_event_count=metrics.observable_event_count,
+                observable_duplication_count=metrics.observable_duplication_count,
+                observable_speciation_count=metrics.observable_speciation_count,
+                duplication_count_error=metrics.duplication_count_error,
+                exact_event_location_matches=metrics.exact_event_location_matches,
+                exact_event_location_denominator=(
+                    metrics.exact_event_location_denominator
+                ),
+                exact_event_location_agreement=(
+                    metrics.exact_event_location_agreement
+                ),
+                duplication_branch_compatible_count=(
+                    metrics.duplication_branch_compatible_count
+                ),
+                duplication_branch_denominator=(
+                    metrics.duplication_branch_denominator
+                ),
+                duplication_branch_compatibility=(
+                    metrics.duplication_branch_compatibility
+                ),
+                loss_branch_match_count=metrics.loss_branch_match_count,
+                loss_precision_denominator=metrics.loss_precision_denominator,
+                loss_recall_denominator=metrics.loss_recall_denominator,
+                exact_event_location_convention_assigned=(
+                    metrics.exact_event_location_denominator == 0
+                ),
+                duplication_branch_convention_assigned=(
+                    metrics.duplication_branch_denominator == 0
+                ),
+                loss_precision_convention_assigned=(
+                    metrics.loss_precision_denominator == 0
+                ),
+                loss_recall_convention_assigned=(
+                    metrics.loss_recall_denominator == 0
+                ),
+                loss_branch_precision=metrics.loss_branch_precision,
+                loss_branch_recall=metrics.loss_branch_recall,
             )
         )
     usable = [row for row in rows if not row.extinct]
@@ -137,15 +210,22 @@ def run_experiment(config: ExperimentConfig) -> tuple[tuple[ExperimentRow, ...],
         "loss_branch_recall",
     )
     summary: dict[str, tuple[float | None, float | None]] = {}
+    valid_counts: dict[str, int] = {}
     for name in names:
         source = rows if name in {"complete_duplications", "complete_losses"} else usable
         values = [float(getattr(row, name)) for row in source if getattr(row, name) is not None]
+        valid_counts[name] = len(values)
         summary[name] = (
             (mean(values), stdev(values) if len(values) > 1 else 0.0)
             if values else (None, None)
         )
     return tuple(rows), ExperimentSummary(
-        len(rows), len(rows) - len(usable), summary, config, config.seeds
+        len(rows),
+        len(rows) - len(usable),
+        summary,
+        config,
+        config.seeds,
+        valid_counts,
     )
 
 

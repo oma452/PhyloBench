@@ -9,12 +9,13 @@ probability. Species-tree speciation is deterministic at branch endpoints.
 
 from __future__ import annotations
 
-from collections import Counter, deque
+from collections import deque
 from collections.abc import Iterable
 from dataclasses import dataclass
 from math import isfinite
 from random import Random
 from types import MappingProxyType
+from typing import Any
 
 from phylo_bench.algorithms.reconciliation import reconcile
 from phylo_bench.model.reconciliation import EventType, ReconciliationResult
@@ -78,7 +79,7 @@ def simulate_gene_family(
     next_lineage_id = 0
     next_gene_node_id = 0
 
-    def record(event_type: SimulationEventType, **kwargs: object) -> None:
+    def record(event_type: SimulationEventType, **kwargs: Any) -> None:
         nonlocal next_event_id
         if next_event_id >= max_events:
             raise SimulationLimitExceeded("max_events limit exceeded")
@@ -104,14 +105,16 @@ def simulate_gene_family(
     root_lineages: list[_Lineage] = []
     if next_lineage_id + len(root_children) > max_lineages:
         raise SimulationLimitExceeded("max_lineages limit exceeded")
-    for child in root_children:
+    for child_species in root_children:
         anchor = TreeNode(next_gene_node_id, "LINEAGE")
         next_gene_node_id += 1
         root_speciation.add_child(anchor)
         lineage = _Lineage(next_lineage_id, origin_lineage.lineage_id, anchor)
         next_lineage_id += 1
         root_lineages.append(lineage)
-        queue.append(_BranchTask(species_tree.root, child, (lineage,)))
+        queue.append(
+            _BranchTask(species_tree.root, child_species, (lineage,))
+        )
     record(
         SimulationEventType.SPECIATION,
         gene_node_id=root_speciation.node_id,
@@ -167,15 +170,19 @@ def simulate_gene_family(
                     child_anchor = TreeNode(next_gene_node_id, "LINEAGE")
                     next_gene_node_id += 1
                     speciation.add_child(child_anchor)
-                    child = _Lineage(
+                    child_lineage = _Lineage(
                         next_lineage_id,
                         lineage.lineage_id,
                         child_anchor,
                     )
                     next_lineage_id += 1
-                    child_lineages.append(child)
+                    child_lineages.append(child_lineage)
                     queue.append(
-                        _BranchTask(task.child_species, child_species, (child,))
+                        _BranchTask(
+                            task.child_species,
+                            child_species,
+                            (child_lineage,),
+                        )
                     )
                 record(
                     SimulationEventType.SPECIATION,
@@ -229,6 +236,8 @@ def _simulate_branch(
     active = list(task.lineages)
     time = 0.0
     length = task.child_species.branch_length
+    if length is None:
+        raise ValueError("simulation branch length must be present")
     total_rate_per_lineage = duplication_rate + loss_rate
 
     while active and total_rate_per_lineage > 0:
@@ -280,7 +289,11 @@ def _project_observed_tree(true_tree: RootedTree) -> RootedTree | None:
 
     def clone(node: TreeNode) -> TreeNode | None:
         if node.is_leaf:
-            return TreeNode(node.node_id, node.name) if node.name.startswith("gene_") else None
+            return (
+                TreeNode(node.node_id, node.name)
+                if node.name is not None and node.name.startswith("gene_")
+                else None
+            )
         children = [clone(child) for child in node.children]
         surviving = [child for child in children if child is not None]
         if not surviving:
@@ -385,7 +398,13 @@ def evaluate_simulation(
         (event.species_parent_id, event.species_child_id)
         for event in reconciliation.losses
     ]
-    precision, recall = _multiset_precision_recall(
+    (
+        loss_matches,
+        loss_precision_denominator,
+        loss_recall_denominator,
+        precision,
+        recall,
+    ) = _multiset_precision_recall(
         inferred_loss_branches, identifiable_loss_branches
     )
     return EvaluationMetrics(
@@ -401,14 +420,21 @@ def evaluate_simulation(
         ),
         matched_event_count=matched,
         observable_event_count=len(visible_nodes),
+        exact_event_location_matches=exact_speciation_matches,
+        exact_event_location_denominator=speciation_count,
         exact_event_location_agreement=(
             exact_speciation_matches / speciation_count
             if speciation_count else 1.0
         ),
+        duplication_branch_compatible_count=compatible_duplications,
+        duplication_branch_denominator=duplication_count,
         duplication_branch_compatibility=(
             compatible_duplications / duplication_count
             if duplication_count else 1.0
         ),
+        loss_branch_match_count=loss_matches,
+        loss_precision_denominator=loss_precision_denominator,
+        loss_recall_denominator=loss_recall_denominator,
         loss_branch_precision=precision,
         loss_branch_recall=recall,
         identifiable_loss_count=len(identifiable_loss_branches),
@@ -476,6 +502,7 @@ def _identifiable_loss_branches(
         (event.species_parent_id, event.species_child_id)
         for event in simulation.events
         if event.event_type is SimulationEventType.LOSS
+        and event.lineage_id is not None
         and any(
             sibling in extant_ancestry
             for sibling in siblings_by_lineage.get(event.lineage_id, ())
@@ -502,15 +529,20 @@ def _location_match(
     return 0
 
 
-def _multiset_precision_recall(inferred: Iterable, truth: Iterable) -> tuple[float, float]:
+def _multiset_precision_recall(
+    inferred: Iterable,
+    truth: Iterable,
+) -> tuple[int, int, int, float, float]:
     from collections import Counter
 
     inferred_counts = Counter(inferred)
     truth_counts = Counter(truth)
     matched = sum((inferred_counts & truth_counts).values())
-    precision = matched / sum(inferred_counts.values()) if inferred_counts else 1.0
-    recall = matched / sum(truth_counts.values()) if truth_counts else 1.0
-    return precision, recall
+    inferred_count = sum(inferred_counts.values())
+    truth_count = sum(truth_counts.values())
+    precision = matched / inferred_count if inferred_count else 1.0
+    recall = matched / truth_count if truth_count else 1.0
+    return matched, inferred_count, truth_count, precision, recall
 
 
 def _validate_rate(name: str, value: float) -> None:

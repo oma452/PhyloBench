@@ -29,7 +29,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install package and test dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -e ".[test]"
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[test,quality]"
 
       - name: Verify package and CLI
         run: |
@@ -37,4 +37,10 @@ jobs:
           phylo-bench --help
 
       - name: Run tests
-        run: python -m pytest
+        run: python -m pytest --cov=phylo_bench --cov-report=term-missing --cov-fail-under=90
+
+      - name: Run lint checks
+        run: python -m ruff check src tests experiments/scripts
+
+      - name: Run static type checks
+        run: python -m mypy src/phylo_bench

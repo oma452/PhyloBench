@@ -4,13 +4,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 from phylo_bench.experiments import ExperimentConfig, run_experiment
 from phylo_bench.export import write_figure, write_rows_csv, write_summary_csv
-from phylo_bench.io import parse_newick
+from phylo_bench.io import atomic_write_text, parse_newick
+from phylo_bench.model.simulation import SimulationLimitExceeded
+from phylo_bench.provenance import (
+    build_run_manifest,
+    sha256_file,
+    write_manifest,
+)
 from phylo_bench.report import write_research_report
 from phylo_bench.simulation import validate_simulation_species_tree
 from phylo_bench.visualization import plot_metric_summary
@@ -87,7 +94,12 @@ def _load_config(path: Path) -> ExperimentConfig:
         raise ValueError(f"invalid experiment configuration: {exc}") from exc
 
 
-def _run(config: ExperimentConfig, output_dir: Path) -> None:
+def _run(
+    config: ExperimentConfig,
+    output_dir: Path,
+    *,
+    command_line: list[str],
+) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     rows, summary = run_experiment(config)
     write_rows_csv(output_dir / "trials.csv", rows)
@@ -109,18 +121,41 @@ def _run(config: ExperimentConfig, output_dir: Path) -> None:
             "trials": summary.trials,
             "extinct_trials": summary.extinct_trials,
             "metrics": summary.metrics,
+            "valid_counts": summary.valid_counts,
         },
         "artifacts": {
             "trials_csv": "trials.csv",
             "summary_csv": "summary.csv",
             "report": "report.md",
             "figures": [f"figures/{metric}.png" for metric in _FIGURE_METRICS],
+            "manifest": "run_manifest.json",
         },
+        "provenance": build_run_manifest(
+            config,
+            command_line=command_line,
+        ),
     }
-    (output_dir / "metadata.json").write_text(
+    metadata_path = output_dir / "metadata.json"
+    atomic_write_text(
+        metadata_path,
         json.dumps(metadata, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
     )
+    artifact_paths = [
+        output_dir / "trials.csv",
+        output_dir / "summary.csv",
+        output_dir / "report.md",
+        metadata_path,
+        *(figures_dir / f"{metric}.png" for metric in _FIGURE_METRICS),
+    ]
+    manifest = build_run_manifest(
+        config,
+        command_line=command_line,
+        artifacts={
+            str(path.relative_to(output_dir)): sha256_file(path)
+            for path in artifact_paths
+        },
+    )
+    write_manifest(output_dir / "run_manifest.json", manifest)
     print(f"completed {summary.trials} trials ({summary.extinct_trials} extinct)")
     print(f"artifacts written to {output_dir}")
 
@@ -135,8 +170,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "inspect":
             print(json.dumps(asdict(config), indent=2, sort_keys=True))
         else:
-            _run(config, args.output_dir)
-    except ValueError as exc:
+            command_line = ["phylo-bench", *(argv if argv is not None else sys.argv[1:])]
+            _run(config, args.output_dir, command_line=command_line)
+    except (OSError, SimulationLimitExceeded, ValueError) as exc:
         parser.error(str(exc))
     return 0
 

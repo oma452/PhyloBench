@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import ConnectionPatch
 from matplotlib.figure import Figure
 from phylo_bench.model.reconciliation import EventType, ReconciliationResult
-from phylo_bench.model.tree import RootedTree, TreeNode
+from phylo_bench.model.tree import RootedTree
 from phylo_bench.visualization.trees import _layout
 
 
@@ -40,7 +40,6 @@ def plot_reconciliation(
 
     draw_tree(gene_ax, gene_tree, gene_pos, "Gene tree / inferred events")
     draw_tree(species_ax, species_tree, species_pos, "Species tree")
-    max_depth = max((x for x, _ in gene_pos.values()), default=1)
     for node_id, mapped in result.node_mapping.items():
         if node_id not in gene_pos:
             continue

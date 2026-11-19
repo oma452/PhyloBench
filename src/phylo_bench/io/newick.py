@@ -7,7 +7,6 @@ import re
 from math import isfinite
 
 from Bio import Phylo
-from Bio.Phylo.BaseTree import Clade
 
 from phylo_bench.model.tree import RootedTree, TreeNode
 from phylo_bench.validation import validate_tree

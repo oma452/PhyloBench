@@ -36,6 +36,7 @@ def test_experiment_is_reproducible_and_reports_measured_values():
     assert summary.extinct_trials == 0
     assert summary.metrics["inferred_cost"] == (0.0, 0.0)
     assert summary.seeds == (7, 11)
+    assert summary.valid_counts["inferred_cost"] == 2
 
 
 def test_experiment_configuration_rejects_invalid_values():
@@ -119,6 +120,49 @@ def test_exports_and_report_use_actual_rows(tmp_path: Path):
     assert "Trials: 1" in report
     assert '"seed": 3' in report
     assert "seeds" in report
+
+
+def test_trial_rows_export_metric_audit_fields():
+    config = ExperimentConfig("(A:1,B:1)S;", (3,), 0.0, 0.0)
+    rows, _ = run_experiment(config)
+    row = rows[0]
+    assert row.exact_event_location_matches == 1
+    assert row.exact_event_location_denominator == 1
+    assert row.duplication_branch_denominator == 0
+    assert row.duplication_branch_convention_assigned is True
+    assert row.loss_precision_denominator == 0
+    assert row.loss_recall_denominator == 0
+
+
+def test_cli_run_writes_provenance_manifest(tmp_path: Path):
+    import hashlib
+    import json
+
+    from phylo_bench.cli import main
+
+    config = tmp_path / "experiment.json"
+    output = tmp_path / "results"
+    config.write_text(
+        json.dumps({
+            "species_tree_newick": "(A:1,B:1)S;",
+            "seeds": [7],
+            "duplication_rate": 0.0,
+            "loss_rate": 0.0,
+        }),
+        encoding="utf-8",
+    )
+    assert main([
+        "run",
+        str(config),
+        "--output-dir",
+        str(output),
+    ]) == 0
+    manifest = json.loads((output / "run_manifest.json").read_text())
+    assert manifest["configuration"]["seeds"] == [7]
+    assert manifest["git"]["revision"]
+    for relative, expected in manifest["artifacts"].items():
+        actual = hashlib.sha256((output / relative).read_bytes()).hexdigest()
+        assert actual == expected
 
 
 def test_visualizations_return_figures_and_can_be_saved(tmp_path: Path):
