@@ -46,20 +46,31 @@ These questions summarize the existing archive; they do not imply that the studi
 PhyloBench (version 0.1.0) is a Python ≥ 3.10 package with two runtime dependencies, Biopython (≥ 1.81) and Matplotlib (≥ 3.7). Its modules are organised as follows (Figure 1).
 
 ```mermaid
-flowchart LR
+%%{init: {"themeVariables": {"fontSize": "48px"}}}%%
+flowchart TB
   CFG[JSON configuration]
   C[cli.py<br/>run / inspect]
-  N[io/newick.py<br/>parse Newick]
-  T[model/tree.py<br/>TreeNode, RootedTree]
-  SIM[simulation.py<br/>simulate, reconcile, evaluate]
-  RC[algorithms/reconciliation.py<br/>LCA mapping, losses, costs]
-  L[algorithms/lca.py<br/>binary lifting]
-  TR[algorithms/traversal.py<br/>tree traversals]
-  E[experiments/runner.py<br/>run trials, summarize]
-  X[export.py<br/>CSV and figure output]
-  P[report.py<br/>Markdown report]
-  V[visualization/<br/>Matplotlib plots]
-  PR[provenance.py<br/>run manifest and hashes]
+  subgraph OUTPUTS[Outputs]
+    direction TB
+    X[export.py<br/>CSV and figure output]
+    P[report.py<br/>Markdown report]
+    V[visualization/<br/>Matplotlib plots]
+    PR[provenance.py<br/>run manifest and hashes]
+    X ~~~ P
+    P ~~~ V
+    V ~~~ PR
+  end
+  subgraph COMPUTE[Execution and reconciliation]
+    direction TB
+    E[experiments/runner.py<br/>run trials, summarize]
+    N[io/newick.py<br/>parse Newick]
+    T[model/tree.py<br/>TreeNode, RootedTree]
+    SIM[simulation.py<br/>simulate, reconcile, evaluate]
+    RC[algorithms/reconciliation.py<br/>LCA mapping, losses, costs]
+    L[algorithms/lca.py<br/>binary lifting]
+    TR[algorithms/traversal.py<br/>tree traversals]
+  end
+  TR ~~~ X
   CFG --> C
   C --> N
   C --> E
