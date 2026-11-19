@@ -203,6 +203,77 @@ def test_wheel_without_git_metadata_reports_null(monkeypatch):
     }
 
 
+def _init_git_dirty_test_repo(tmp_path):
+    import subprocess
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.invalid"],
+        cwd=tmp_path,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Test"],
+        cwd=tmp_path,
+        check=True,
+    )
+    tracked = tmp_path / "src.txt"
+    tracked.write_text("clean\n", encoding="utf-8")
+    subprocess.run(["git", "add", "src.txt"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", "initial"],
+        cwd=tmp_path,
+        check=True,
+    )
+    return tmp_path / "src.txt"
+
+
+def test_git_dirty_clean_checkout(tmp_path):
+    from build_provenance import git_dirty
+
+    _init_git_dirty_test_repo(tmp_path)
+    assert git_dirty(tmp_path) is False
+
+
+def test_git_dirty_modified_tracked_source(tmp_path):
+    from build_provenance import git_dirty
+
+    tracked = _init_git_dirty_test_repo(tmp_path)
+    tracked.write_text("modified\n", encoding="utf-8")
+    assert git_dirty(tmp_path) is True
+
+
+def test_git_dirty_untracked_source(tmp_path):
+    from build_provenance import git_dirty
+
+    _init_git_dirty_test_repo(tmp_path)
+    (tmp_path / "new_source.py").write_text("pass\n", encoding="utf-8")
+    assert git_dirty(tmp_path) is True
+
+
+def test_git_dirty_generated_artifacts_only(tmp_path):
+    from build_provenance import git_dirty
+
+    _init_git_dirty_test_repo(tmp_path)
+    for directory in ("build", "dist", "src.egg-info"):
+        path = tmp_path / directory
+        path.mkdir()
+        (path / "artifact.txt").write_text("generated\n", encoding="utf-8")
+    assert git_dirty(tmp_path) is False
+
+
+def test_git_dirty_generated_artifacts_do_not_hide_source(tmp_path):
+    from build_provenance import git_dirty
+
+    tracked = _init_git_dirty_test_repo(tmp_path)
+    tracked.write_text("modified\n", encoding="utf-8")
+    for directory in ("build", "dist", "src.egg-info"):
+        path = tmp_path / directory
+        path.mkdir()
+        (path / "artifact.txt").write_text("generated\n", encoding="utf-8")
+    assert git_dirty(tmp_path) is True
+
+
 def test_visualizations_return_figures_and_can_be_saved(tmp_path: Path):
     species, gene = _trees()
     reconciliation = reconcile(gene, species, {"A": "A", "B": "B"})

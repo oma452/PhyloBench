@@ -2,33 +2,23 @@
 
 from __future__ import annotations
 
-import subprocess
+import sys
 from pathlib import Path
 
-from setuptools import setup
-from setuptools.command.build_py import build_py as _build_py
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
 
-
-def _git_output(root: Path, *arguments: str) -> str | None:
-    try:
-        return subprocess.run(
-            ["git", *arguments],
-            cwd=root,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-    except (OSError, subprocess.CalledProcessError):
-        return None
+from setuptools import setup  # noqa: E402
+from setuptools.command.build_py import build_py as _build_py  # noqa: E402
+from build_provenance import git_dirty, git_revision  # noqa: E402
 
 
 class build_py(_build_py):
     def run(self) -> None:
+        root = ROOT
+        revision = git_revision(root)
+        dirty = git_dirty(root)
         super().run()
-        root = Path(__file__).resolve().parent
-        revision = _git_output(root, "rev-parse", "HEAD")
-        dirty_output = _git_output(root, "status", "--porcelain")
-        dirty = bool(dirty_output) if dirty_output is not None else None
 
         target = Path(self.build_lib) / "phylo_bench" / "_build_info.py"
         target.parent.mkdir(parents=True, exist_ok=True)
