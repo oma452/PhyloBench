@@ -34,7 +34,7 @@ Both event-record and lineage-allocation limits raise `SimulationLimitExceeded`.
 
 The pilot counts must be separated by study. Study 1 has 9 pilot executions: seeds 101–103 in each of three tiers. Study 2 has 45: seeds 1001–1005 in each of nine cells. The combined pilot archive therefore contains 54 executions (9 + 45); 54 is not the Study 2 count. All 9 Study 1 and all 45 Study 2 pilot study/cell/seed keys occur once in their corresponding full-run datasets, with matching shared trial fields. No pilot key is missing or duplicated. These overlapping pilot executions add no trial rows: the Study 1 and Study 2 full archives remain 30 and 900 rows, rather than 39 and 945.
 
-Within Study 2, seed IDs 1001–1100 are reused in each of the nine factorial conditions. This creates a common-seed design that can make cross-condition outcomes dependent. The archived analysis presents cell-wise summaries and descriptive contrasts; it does not estimate uncertainty for paired cross-condition contrasts. Seed reuse must not be described as establishing statistical independence.
+Within Study 2, seed IDs 1001–1100 are reused in each of the nine factorial conditions. This creates a common-seed design that can make cross-condition outcomes dependent. The paired-seed analysis reports descriptive paired cross-condition contrasts with paired observation counts, mean differences, paired sample SDs, and MCSEs. These quantify variation in the paired differences but are not hypothesis tests, significance claims, confidence intervals, or confirmatory inference. Seed reuse must not be described as establishing statistical independence.
 
 ### Empty-denominator metrics
 

@@ -73,7 +73,7 @@ flowchart LR
   E --> V
   C --> E
 ```
-*Figure 1. Module structure of PhyloBench (to be redrawn for publication). Arrows indicate the direction of data flow, not Python import order.*
+*Figure 1. Module structure of PhyloBench. Arrows indicate the direction of data flow, not Python import order.*
 
 The implementation validates trees before processing, accepts an integer seed, keeps complete event history separately from the projected observed tree, and raises an exception when configured simulation limits would be exceeded. Automated tests cover the tree model, parsing, traversal, LCA, reconciliation, simulation invariants, CLI, export, reports, figures, analytical simulator properties, and independent reconciliation oracles. GitHub Actions run [44547413391](https://github.com/oma452/PhyloBench/actions/runs/44547413391) completed successfully for Python 3.10, 3.11, 3.12, and 3.13 on tested commit `e4c3d6c9c6a078ebf99ffade7567c53dee2c2c7f`. This automated CI evidence concerns that commit, not the later documentation-only commit `d2495404c09a40d42f601904bdd4b7ab2d6376b6`. CI validation is distinct from local validation and from verification of the historical study archive; it does not establish external scientific validation or reproduction of the complete original experiment-generation pipeline.
 
