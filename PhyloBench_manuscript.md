@@ -47,33 +47,36 @@ PhyloBench (version 0.1.0) is a Python ≥ 3.10 package with two runtime depende
 
 ```mermaid
 flowchart LR
-  subgraph IO[Input]
-    N[io/newick.py<br/>Biopython parse + validation]
-  end
-  subgraph MODEL[Model]
-    T[model/tree.py<br/>TreeNode, RootedTree]
-    R[model/reconciliation.py<br/>result types]
-    S[model/simulation.py<br/>event + metric types]
-  end
-  subgraph ALG[Algorithms]
-    TR[algorithms/traversal.py]
-    L[algorithms/lca.py<br/>binary lifting]
-    RC[algorithms/reconciliation.py<br/>LCA mapping, losses, costs]
-  end
-  SIM[simulation.py<br/>D-L simulator, projection, evaluation]
-  subgraph WF[Workflow]
-    E[experiments/runner.py]
-    X[export.py CSV]
-    P[report.py Markdown]
-    V[visualization/ Matplotlib]
-    C[cli.py run / inspect]
-  end
-  N --> T --> TR --> L --> RC --> SIM --> E --> X
-  E --> P
-  E --> V
+  CFG[JSON configuration]
+  C[cli.py<br/>run / inspect]
+  N[io/newick.py<br/>parse Newick]
+  T[model/tree.py<br/>TreeNode, RootedTree]
+  SIM[simulation.py<br/>simulate, reconcile, evaluate]
+  RC[algorithms/reconciliation.py<br/>LCA mapping, losses, costs]
+  L[algorithms/lca.py<br/>binary lifting]
+  TR[algorithms/traversal.py<br/>tree traversals]
+  E[experiments/runner.py<br/>run trials, summarize]
+  X[export.py<br/>CSV and figure output]
+  P[report.py<br/>Markdown report]
+  V[visualization/<br/>Matplotlib plots]
+  PR[provenance.py<br/>run manifest and hashes]
+  CFG --> C
+  C --> N
   C --> E
+  C --> X
+  C --> P
+  C --> V
+  C --> PR
+  N --> T
+  E --> N
+  E --> SIM
+  SIM --> T
+  SIM --> RC
+  RC --> L
+  RC --> TR
+  RC --> T
 ```
-*Figure 1. Module structure of PhyloBench. Arrows indicate the direction of data flow, not Python import order.*
+*Figure 1. Module structure of PhyloBench. Arrows show verified orchestration and data-flow relationships; they are not a complete import graph.*
 
 The implementation validates trees before processing, accepts an integer seed, keeps complete event history separately from the projected observed tree, and raises an exception when configured simulation limits would be exceeded. Automated tests cover the tree model, parsing, traversal, LCA, reconciliation, simulation invariants, CLI, export, reports, figures, analytical simulator properties, and independent reconciliation oracles. GitHub Actions run [44547413391](https://github.com/oma452/PhyloBench/actions/runs/44547413391) completed successfully for Python 3.10, 3.11, 3.12, and 3.13 on tested commit `e4c3d6c9c6a078ebf99ffade7567c53dee2c2c7f`. This automated CI evidence concerns that commit, not the later documentation-only commit `d2495404c09a40d42f601904bdd4b7ab2d6376b6`. CI validation is distinct from local validation and from verification of the historical study archive; it does not establish external scientific validation or reproduction of the complete original experiment-generation pipeline.
 
@@ -163,6 +166,8 @@ The evaluator also computes the number of type-matched nodes and the signed dupl
 ### 3.6 Experimental design
 
 Both studies use the rooted, balanced four-species tree `((A:1,B:1)AB:1,(C:1,D:1)CD:1)ROOT;`, unit duplication and loss costs, and limits of 100,000 events and 10,000 lineages (Table 2). Each trial is one simulated family. Study 1 contains 30 full-run trials across three equal-rate conditions; Study 2 contains 900 trials across nine duplication/loss-rate combinations. The pilot archives contain 54 executions in total: 9 in Study 1 (seeds 101–103 in each of three tiers) and 45 in Study 2 (seeds 1001–1005 in each of nine cells). In each study, these pilot seed/cell combinations are included again in the corresponding full-run files, so they add no trial rows: the full datasets contain 30 and 900 rows, not 39 and 945. Study 2 also reuses seed IDs 1001–1100 in every factorial cell. This common-seed design can induce dependence across conditions. A paired-seed script produces 180 descriptive contrast records (36 cell pairs × 5 metrics), reporting paired observation counts, mean differences, paired sample SDs, and MCSEs; it performs no hypothesis tests, significance calculations, confidence-interval estimation, or confirmatory inference. No Study 1 pilot trials were extinct; three of 45 Study 2 pilot trials were extinct. The archive contains no limit-exception ledger.
+
+For each paired contrast, the script forms \(d_i = \mathrm{right}_i - \mathrm{left}_i\) over shared seeds with non-empty values. It reports the paired mean difference \(\bar d = \frac{1}{n}\sum_i d_i\), paired sample standard deviation \(SD_{\mathrm{paired}} = \sqrt{\frac{1}{n-1}\sum_i(d_i-\bar d)^2}\) for \(n>1\) (and 0 for \(n=1\)), and \(MCSE = SD_{\mathrm{paired}}/\sqrt{n}\). Here \(n\) is the paired observation count after excluding missing values. These are descriptive measures of variation in paired differences, not confidence intervals or inferential tests.
 
 **Table 2. Experimental design.**
 
