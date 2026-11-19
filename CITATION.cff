@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+title: PhyloBench
+type: software
+version: 0.1.0
+abstract: >-
+  Reproducible benchmarking and visualization for gene tree-species tree
+  reconciliation.
+authors:
+  - family-names: Shibl
+    given-names: Omar
+repository-code: https://github.com/oma452/PhyloBench
+license: MIT
+message: >-
+  If you use PhyloBench, please cite this software.
