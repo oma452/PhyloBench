@@ -232,6 +232,68 @@ def test_configured_limits_stop_high_rate_simulations():
         )
 
 
+@pytest.mark.parametrize("max_lineages", [1, 2])
+def test_root_speciation_rejects_insufficient_lineage_capacity(max_lineages):
+    with pytest.raises(SimulationLimitExceeded, match="max_lineages"):
+        simulate_gene_family(
+            parse_newick("(A:1,B:1)R;"),
+            duplication_rate=0,
+            loss_rate=0,
+            seed=0,
+            max_lineages=max_lineages,
+        )
+
+
+def test_root_speciation_accepts_exact_lineage_capacity():
+    result = simulate_gene_family(
+        parse_newick("(A:1,B:1)R;"),
+        duplication_rate=0,
+        loss_rate=0,
+        seed=0,
+        max_lineages=3,
+    )
+
+    lineage_ids = {
+        event.lineage_id
+        for event in result.events
+        if event.lineage_id is not None
+    }
+    assert lineage_ids == {0, 1, 2}
+
+
+@pytest.mark.parametrize(
+    ("newick", "max_lineages", "raises"),
+    [
+        ("(A:1,(B:1,C:1)X:1)R;", 3, True),
+        ("(A:1,(B:1,C:1)X:1)R;", 5, False),
+        ("((A:1,B:1)AB:1,(C:1,D:1)CD:1)R;", 6, True),
+        ("((A:1,B:1)AB:1,(C:1,D:1)CD:1)R;", 7, False),
+    ],
+)
+def test_nested_speciations_respect_complete_lineage_batches(
+    newick, max_lineages, raises
+):
+    operation = simulate_gene_family
+    arguments = {
+        "species_tree": parse_newick(newick),
+        "duplication_rate": 0,
+        "loss_rate": 0,
+        "seed": 0,
+        "max_lineages": max_lineages,
+    }
+    if raises:
+        with pytest.raises(SimulationLimitExceeded, match="max_lineages"):
+            operation(**arguments)
+    else:
+        result = operation(**arguments)
+        lineage_ids = {
+            event.lineage_id
+            for event in result.events
+            if event.lineage_id is not None
+        }
+        assert len(lineage_ids) == max_lineages
+
+
 @pytest.mark.parametrize(
     "newick",
     ["((A,C)X,B)R;", "((A:0,C:1)X:1,B:1)R;", "((A:1,C:1)X:1,B:0)R;"],

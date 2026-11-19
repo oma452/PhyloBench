@@ -102,9 +102,9 @@ def simulate_gene_family(
     queue: deque[_BranchTask] = deque()
     root_children = tuple(species_tree.root.children)
     root_lineages: list[_Lineage] = []
+    if next_lineage_id + len(root_children) > max_lineages:
+        raise SimulationLimitExceeded("max_lineages limit exceeded")
     for child in root_children:
-        if next_lineage_id + 1 > max_lineages:
-            raise SimulationLimitExceeded("max_lineages limit exceeded")
         anchor = TreeNode(next_gene_node_id, "LINEAGE")
         next_gene_node_id += 1
         root_speciation.add_child(anchor)
@@ -159,11 +159,11 @@ def simulate_gene_family(
                 next_gene_node_id += 1
                 lineage.gene_node.add_child(speciation)
                 child_lineages = []
+                if next_lineage_id + len(children) > max_lineages:
+                    raise SimulationLimitExceeded(
+                        "max_lineages limit exceeded"
+                    )
                 for child_species in children:
-                    if next_lineage_id + 1 > max_lineages:
-                        raise SimulationLimitExceeded(
-                            "max_lineages limit exceeded"
-                        )
                     child_anchor = TreeNode(next_gene_node_id, "LINEAGE")
                     next_gene_node_id += 1
                     speciation.add_child(child_anchor)
