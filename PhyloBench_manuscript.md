@@ -2,9 +2,7 @@
 
 **Author:** Omar Shibl
 **Affiliation:** Independent Researcher, Egypt
-**Correspondence:** Omar Shibl
-
-> **Publication disclosure:** Generative-AI assistance was used for repository review, implementation review, prose editing, and manuscript synchronization. Authors should verify that this disclosure meets the requirements of the selected venue and supply any venue-specific model/tool details. Funding, acknowledgements, contributor roles, and contact email are not included because they were not supplied.
+**Corresponding author:** Omar Shibl
 
 ---
 
@@ -48,52 +46,50 @@ These questions summarize the existing archive; they do not imply that the studi
 PhyloBench (version 0.1.0) is a Python ≥ 3.10 package with two runtime dependencies, Biopython (≥ 1.81) and Matplotlib (≥ 3.7). Its modules are organised as follows (Figure 1).
 
 ```mermaid
-flowchart LR
-  subgraph IO[Input]
-    N[io/newick.py<br/>Biopython parse + validation]
+%%{init: {"themeVariables": {"fontSize": "48px"}}}%%
+flowchart TB
+  CFG[JSON configuration]
+  C[cli.py<br/>run / inspect]
+  subgraph OUTPUTS[Outputs]
+    direction TB
+    X[export.py<br/>CSV and figure output]
+    P[report.py<br/>Markdown report]
+    V[visualization/<br/>Matplotlib plots]
+    PR[provenance.py<br/>run manifest and hashes]
+    X ~~~ P
+    P ~~~ V
+    V ~~~ PR
   end
-  subgraph MODEL[Model]
+  subgraph COMPUTE[Execution and reconciliation]
+    direction TB
+    E[experiments/runner.py<br/>run trials, summarize]
+    N[io/newick.py<br/>parse Newick]
     T[model/tree.py<br/>TreeNode, RootedTree]
-    R[model/reconciliation.py<br/>result types]
-    S[model/simulation.py<br/>event + metric types]
-  end
-  subgraph ALG[Algorithms]
-    TR[algorithms/traversal.py]
-    L[algorithms/lca.py<br/>binary lifting]
+    SIM[simulation.py<br/>simulate, reconcile, evaluate]
     RC[algorithms/reconciliation.py<br/>LCA mapping, losses, costs]
+    L[algorithms/lca.py<br/>binary lifting]
+    TR[algorithms/traversal.py<br/>tree traversals]
   end
-  SIM[simulation.py<br/>D-L simulator, projection, evaluation]
-  subgraph WF[Workflow]
-    E[experiments/runner.py]
-    C[cli.py<br/>run / inspect]
-    P[provenance.py<br/>manifests + SHA-256]
-    X[export.py<br/>CSV + figures]
-    A[io/atomic.py<br/>atomic writes]
-    RPT[report.py<br/>Markdown]
-    V[visualization/<br/>Matplotlib]
-  end
-  N --> T
-  T --> TR
-  T --> L
-  L --> RC
-  RC --> SIM
-  SIM --> E
+  TR ~~~ X
+  CFG --> C
+  C --> N
   C --> E
-  E --> X
-  E --> RPT
-  E --> V
-  E --> P
-  X --> A
-  RPT --> A
-  P --> A
+  C --> X
+  C --> P
+  C --> V
+  C --> PR
+  N --> T
+  E --> N
+  E --> SIM
+  SIM --> T
+  SIM --> RC
+  RC --> L
+  RC --> TR
+  RC --> T
 ```
-*Figure 1. Publication-ready schematic of PhyloBench's module and artifact flow. Input parsing and tree validation feed the model, traversal, LCA, reconciliation, and simulation layers; the experiment runner drives CSV, report, visualization, and provenance outputs, which use atomic filesystem writers. Arrows indicate principal data flow and support relationships, not a complete Python import graph.*
+*Figure 1. Module structure of PhyloBench. Arrows show verified orchestration and data-flow relationships; they are not a complete import graph.*
 
-The implementation validates trees before processing, accepts an integer seed, keeps complete event history separately from the projected observed tree, and raises an exception when configured simulation limits would be exceeded. The lineage-limit implementation checks complete speciation allocation batches; duplication allocation also checks both daughters atomically. Automated tests cover the tree model, parsing, traversal, LCA, reconciliation, simulation invariants, CLI, export, reports, figures, boundary lineage limits, an independent reconciliation oracle, and analytical simulator special cases.
-
-The repository now records run provenance in machine-readable manifests, including the Git revision and dirty state, Python implementation and version, platform, command-line arguments, experiment configuration, installed runtime dependency versions, creation time, artifact paths, and SHA-256 artifact digests. The implementation does not hash the manifest itself. CSV and figure writes use atomic temporary-file replacement. Experiment trial records include numerators and denominators for evaluated metrics, valid-trial counts, and flags identifying empty-denominator conventions.
-
-`requirements-lock-py312.txt` records a resolved Python 3.12 validation environment, not a universal lock across all supported Python versions. GitHub Actions workflow run 44547413391 at implementation commit `e4c3d6c9c6a078ebf99ffade7567c53dee2c2c7f` passed all four matrix jobs on Python 3.10, 3.11, 3.12, and 3.13. Each job ran 92 tests and reported 95.24% coverage under the CI 90% coverage threshold; Ruff and mypy checks also passed. The subsequent documentation commit `d2495404c09a40d42f601904bdd4b7ab2d6376b6` added `LICENSE` and `CITATION.cff`. This evidence is software validation and not independent reconciliation or historical experiment validation.
+The implementation validates trees before processing, accepts an integer seed, keeps complete event history separately from the projected observed tree, and raises an exception when configured simulation limits would be exceeded. Automated tests cover the tree model, parsing, traversal, LCA, reconciliation, simulation invariants, CLI, export, reports, figures, analytical simulator properties, and independent reconciliation oracles. GitHub Actions run [44547413391](https://github.com/oma452/PhyloBench/actions/runs/44547413391) completed successfully for Python 3.10, 3.11, 3.12, and 3.13 on tested commit `e4c3d6c9c6a078ebf99ffade7567c53dee2c2c7f`. This automated CI evidence concerns that commit, not the later documentation-only commit `d2495404c09a40d42f601904bdd4b7ab2d6376b6`. CI validation is distinct from local validation and from verification of the historical study archive; it does not establish external scientific validation or reproduction of the complete original experiment-generation pipeline.
 
 ### 3.2 Tree representation and LCA
 
@@ -165,7 +161,7 @@ flowchart TD
 
 **Limits.** If recording another event would exceed `max_events`, or allocating another lineage would exceed `max_lineages` (defaults 100,000 and 10,000), the simulator raises `SimulationLimitExceeded`. `run_experiment` does not catch this exception, so a violating trial aborts the run rather than returning a silently truncated family.
 
-**Reproducibility.** Randomness comes from Python's `random.Random(seed)` with an integer seed, and fixed-seed repeatability is covered by a test. Current experiment execution records configuration, seeds, command-line arguments, Git and platform provenance, runtime dependency versions, and artifact digests in `run_manifest.json`. `requirements-lock-py312.txt` provides a resolved Python 3.12 environment, while cross-version identity of random streams remains unverified. New executable scripts in `experiments/scripts/reproduce_study.py` regenerate study cells in caller-selected output directories. Rechecking the current implementation matched 30/30 Study 1 and 900/900 Study 2 trial measurements, but this is not byte-for-byte evidence for historical figure, report, or CSV file identity because the original end-to-end generator and figure scripts remain absent.
+**Reproducibility.** Randomness comes from Python's `random.Random(seed)` with an integer seed, and fixed-seed repeatability is covered by a test. The experiment metadata records the study configurations and seeds. The repository includes provenance manifests, artifact SHA-256 hashes, atomic output writing, regeneration scripts, and `requirements-lock-py312.txt`, which documents a resolved Python 3.12 environment. The lockfile does not reproduce the original historical environment, and cross-version identity of random streams is unverified. The new scripts provide an executable regeneration workflow from the archived configurations through the current CLI, but the complete original experiment-generation and figure-generation pipeline is not present; therefore they do not establish byte-for-byte reproduction of historical artifact bundles.
 
 ### 3.5 Evaluation metrics
 
@@ -176,11 +172,13 @@ For a non-extinct trial, the observed tree is reconciled with the species tree u
 - **Duplication branch compatibility.** Among nodes whose true and inferred types are both duplication, the fraction for which *M(v)* equals or lies below *c(v)*, the child end of the species branch on which the duplication occurred. This does not establish recovery of the exact duplication time, which is not identifiable from extant leaves.
 - **Loss precision and recall.** Let Î be the multiset of species branches carrying inferred losses. A simulated loss is *identifiable* if the lineage that was lost was created by a speciation or duplication split in which at least one sibling lineage has an extant descendant; let *I* be the multiset of species branches of identifiable losses. Precision is |Î ∩ *I*| / |Î| and recall is |Î ∩ *I*| / |*I*|, using multiset intersection. When a denominator is empty the implementation returns 1.0. The same convention applies to exact speciation-location agreement and duplication-branch compatibility when their evaluated event denominators are empty. A convention-assigned 1.0 is not evidence of event recovery. Hidden losses are excluded from recall rather than counted as misses. Matching branches does not establish exact historical loss-event recovery.
 
-The trial export additionally records metric numerators and denominators, valid-trial counts, and convention-assigned flags. Complete and inferred count fields remain unchanged. The runner also computes type-matched nodes and signed duplication-count error, but they are not among the currently archived trial measurements and are therefore not analysed here (Section 6).
+The evaluator also computes the number of type-matched nodes and the signed duplication-count error, but the experiment runner does not write these to the trial CSV; they are therefore not analysed here (Section 6).
 
 ### 3.6 Experimental design
 
-Both studies use the rooted, balanced four-species tree `((A:1,B:1)AB:1,(C:1,D:1)CD:1)ROOT;`, unit duplication and loss costs, and limits of 100,000 events and 10,000 lineages (Table 2). Each trial is one simulated family. Study 1 contains 30 full-run trials across three equal-rate conditions; Study 2 contains 900 trials across nine duplication/loss-rate combinations. The pilot archives contain 54 executions in total: 9 in Study 1 (seeds 101–103 in each of three tiers) and 45 in Study 2 (seeds 1001–1005 in each of nine cells). In each study, these pilot seed/cell combinations are included again in the corresponding full-run files, so they add no trial rows: the full datasets contain 30 and 900 rows, not 39 and 945. Study 2 also reuses seed IDs 1001–1100 in every factorial cell. This common-seed design can induce dependence across conditions. The archived cell-wise summaries do not provide paired contrasts; the later paired-analysis script reports descriptive paired-difference SDs and MCSEs, but no confidence intervals or hypothesis tests. No Study 1 pilot trials were extinct; three of 45 Study 2 pilot trials were extinct. The archive contains no limit-exception ledger.
+Both studies use the rooted, balanced four-species tree `((A:1,B:1)AB:1,(C:1,D:1)CD:1)ROOT;`, unit duplication and loss costs, and limits of 100,000 events and 10,000 lineages (Table 2). Each trial is one simulated family. Study 1 contains 30 full-run trials across three equal-rate conditions; Study 2 contains 900 trials across nine duplication/loss-rate combinations. The pilot archives contain 54 executions in total: 9 in Study 1 (seeds 101–103 in each of three tiers) and 45 in Study 2 (seeds 1001–1005 in each of nine cells). In each study, these pilot seed/cell combinations are included again in the corresponding full-run files, so they add no trial rows: the full datasets contain 30 and 900 rows, not 39 and 945. Study 2 also reuses seed IDs 1001–1100 in every factorial cell. This common-seed design can induce dependence across conditions. A paired-seed script produces 180 descriptive contrast records (36 cell pairs × 5 metrics), reporting paired observation counts, mean differences, paired sample SDs, and MCSEs; it performs no hypothesis tests, significance calculations, confidence-interval estimation, or confirmatory inference. No Study 1 pilot trials were extinct; three of 45 Study 2 pilot trials were extinct. The archive contains no limit-exception ledger.
+
+For each paired contrast, the script forms \(d_i = \mathrm{right}_i - \mathrm{left}_i\) over shared seeds with non-empty values. It reports the paired mean difference \(\bar d = \frac{1}{n}\sum_i d_i\), paired sample standard deviation \(SD_{\mathrm{paired}} = \sqrt{\frac{1}{n-1}\sum_i(d_i-\bar d)^2}\) for \(n>1\) (and 0 for \(n=1\)), and \(MCSE = SD_{\mathrm{paired}}/\sqrt{n}\). Here \(n\) is the paired observation count after excluding missing values. These are descriptive measures of variation in paired differences, not confidence intervals or inferential tests.
 
 **Table 2. Experimental design.**
 
@@ -195,17 +193,13 @@ Both studies use the rooted, balanced four-species tree `((A:1,B:1)AB:1,(C:1,D:1
 | Costs *c_D*, *c_L* | 1, 1 | 1, 1 |
 | Limits (events, lineages) | 100,000; 10,000 | 100,000; 10,000 |
 
-Study 2 uses the same 100 integer seed IDs in all nine cells. Cross-cell dependence was not quantified in the archived cell-wise summaries, which are not paired estimates; the separate paired-analysis script provides descriptive paired differences and their implemented SD/MCSE calculations without confirmatory inference.
+Study 2 uses the same 100 integer seed IDs in all nine cells. Cross-cell dependence was not quantified. The paired-seed output is descriptive and is not a significance analysis, hypothesis test, confidence-interval analysis, or confirmatory estimate.
 
 *Archived-data check.* The raw files contain 30 Study 1 and 900 Study 2 full-run rows. The pilot files contain 9 Study 1 and 45 Study 2 records (54 combined). Each pilot study/cell/seed key appears once in its pilot files and exactly once in its corresponding full-run dataset; all shared trial fields match. Thus all 54 pilot executions overlap the full-run records and none adds a row to the final datasets. Study configurations and seeds are archived, but the original full study-generation scripts and the scripts for the study figures and derivative tables are not; the repository therefore does not package the complete experiment-generation pipeline.
 
 ### 3.7 Statistical analysis
 
-All analyses are descriptive; no hypothesis tests are performed. We report condition-wise means and sample SDs (*n* − 1 denominator). Complete-history counts use all trials; inferred metrics use only non-extinct trials. Bounded-metric means include convention-assigned 1.0 values for empty denominators. For loss precision and recall, Table 5 also reports means over trials with non-empty denominators and the number of such trials. The Monte Carlo standard error (MCSE) is the sample SD divided by √*n*. The archived audit reports normal-approximation 95% intervals (mean ± 1.96 MCSE) for counts and cost, Wilson score intervals for extinction frequencies (Wilson, 1927), and percentile-bootstrap intervals (20,000 resamples, deterministic seeds derived from cell and metric names) for bounded metrics (Efron, 1979). Recomputed means and sample SDs for all 99 metric/cell rows and Wilson intervals for all nine extinction rates match the archived summaries and audit file; bootstrap intervals were not independently recomputed here.
-
-Study 2 also has a descriptive paired common-seed analysis script, `experiments/2026-10-30-second-study/analysis/paired_seed_analysis.py`. It matches rows by integer seed and generates right-minus-left mean differences, paired sample SD, and paired MCSE for 180 cell-pair/metric combinations. It performs no confirmatory tests or significance claims. Matching seeds across conditions supports paired exploratory contrasts, but missing or extinct observations can reduce the paired sample. The script does not establish causal or confirmatory effects.
-
-Intervals and contrasts quantify Monte Carlo uncertainty conditional on this simulator, tree, seed design, and analysis. They do not account for model or topology uncertainty, and cell-wise intervals do not quantify paired cross-condition contrasts.
+All analyses are descriptive; no hypothesis tests are performed. We report condition-wise means and sample SDs (*n* − 1 denominator). Complete-history counts use all trials; inferred metrics use only non-extinct trials. Bounded-metric means include convention-assigned 1.0 values for empty denominators. For loss precision and recall, Table 5 also reports means over trials with non-empty denominators and the number of such trials. The Monte Carlo standard error (MCSE) is the sample SD divided by √*n*. The archived audit reports normal-approximation 95% intervals (mean ± 1.96 MCSE) for counts and cost, Wilson score intervals for extinction frequencies (Wilson, 1927), and percentile-bootstrap intervals (20,000 resamples, deterministic seeds derived from cell and metric names) for bounded metrics (Efron, 1979). Recomputed means and sample SDs for all 99 metric/cell rows and Wilson intervals for all nine extinction rates match the archived summaries and audit file; bootstrap intervals were not independently recomputed here. These intervals quantify Monte Carlo uncertainty conditional on this simulator, tree, seed design, and analysis. They do not account for model or topology uncertainty, and cell-wise intervals do not quantify paired cross-condition contrasts.
 
 ## 4. Results
 
@@ -301,17 +295,17 @@ PhyloBench is narrower than tools such as SimPhy, which models multiple evolutio
 
 **Construct validity.** The evaluation measures branch compatibility or branch-level loss matching, not exact event-time or event-identity recovery. Losses without an extant sibling witness are excluded from the recall denominator. An empty denominator yields 1.0 for loss precision/recall, speciation-location agreement, and duplication compatibility; this convention is not evidence of successful recovery. The raw export lacks the denominators needed to separate convention-assigned 1.0 values from evaluated 1.0 values for the location metrics. Both location metrics equal 1.0 in all 831 non-extinct records and are not informative in this design. Inferred metrics also condition on non-extinction.
 
-**Internal and statistical validity.** Study 2 reuses the same seed IDs across all nine cells, and both studies reuse pilot seed/cell combinations in their full runs. The repeated pilot records are not additional trials. Common seeds may induce cross-condition dependence. The paired-analysis script reports the sample SD of each set of paired differences and its MCSE, calculated as SD divided by the square root of the paired-observation count. These quantities describe variability and estimated Monte Carlo error of the mean paired difference under that calculation; they are not confidence intervals or hypothesis tests and do not establish significance, causality, or confirmatory evidence. Study 1 has ten trials per condition and is explicitly exploratory; Study 2 has 100 per cell, with only 73–100 non-extinct observations per cell. Intervals and MCSEs are conditional on the simulated model and design.
+**Internal and statistical validity.** Study 2 reuses the same seed IDs across all nine cells, and both studies reuse pilot seed/cell combinations in their full runs. The repeated pilot records are not additional trials. Common seeds may induce cross-condition dependence. The paired-seed script reports 180 descriptive contrasts (36 cell pairs × 5 metrics), but does not perform hypothesis tests or provide significance, confidence-interval, or confirmatory inference. Analyses are descriptive and do not support causal or confirmatory claims. Study 1 has ten trials per condition and is explicitly exploratory; Study 2 has 100 per cell, with only 73–100 non-extinct observations per cell. Confidence intervals are conditional on the simulated model and design.
 
 **External validity.** Both studies use one balanced four-species tree with unit branch lengths, constant rates, and a simplified vertical duplication–loss process. They do not test other topologies, tree sizes, branch-length regimes, polytomies, non-unit reconciliation costs, horizontal transfer, incomplete lineage sorting, gene conversion, rate heterogeneity, sequence evolution, or gene-tree estimation error. Results therefore do not establish performance on empirical data or across evolutionary settings.
 
-**Computational and reproducibility validity.** The repository has a published MIT license and `CITATION.cff`, a resolved Python 3.12 environment record, machine-readable run manifests, SHA-256 artifact checksums, atomic artifact writing, and executable study-regeneration scripts. It still lacks the original historical study-run and figure-generation scripts, and historical study metadata do not identify the original package versions or source revision. Current trial regeneration matched 30/30 and 900/900 archived trial measurements; it did not establish byte-for-byte identity of historical files. Bootstrap intervals were not independently recomputed, and no release tag or archival software DOI is claimed. Independent reconciliation validation was added through a separate small-tree oracle and analytical simulator tests, but CI and these tests do not substitute for cross-validation against established reconciliation software or external scientific validation.
+**Computational and reproducibility validity.** The repository lacks the complete original study-generation and figure-generation scripts, and study metadata do not identify the original software versions or source revision. The current repository includes a resolved Python 3.12 environment record, provenance manifests, artifact hashes, atomic output writing, and regeneration scripts, but these do not reproduce the original historical environment or establish byte-for-byte identity of historical artifact bundles. A verified regeneration comparison matched 30/30 Study 1 trial rows and 900/900 Study 2 trial rows across the seed identifier and 11 shared measurement fields (`extinct`, `complete_duplications`, `complete_losses`, `inferred_duplications`, `inferred_losses`, `inferred_cost`, `identifiable_loss_count`, `exact_event_location_agreement`, `duplication_branch_compatibility`, `loss_branch_precision`, and `loss_branch_recall`); it did not compare every figure, report, CSV, or artifact byte-for-byte, and newly generated outputs remain distinct from archived historical CSVs. Recomputed means, SDs, and Wilson intervals support the tabulated summaries, but bootstrap intervals were not independently recomputed. The repository includes an MIT license and citation metadata. Tests and continuous integration do not substitute for cross-validation against an established reconciliation implementation.
 
 ## 7. Limitations and next work
 
-The model and experimental design were deliberately narrow, and the available archive imposes additional limits. The archived trial CSV omits event-type agreement and signed duplication-count error; newly implemented exports expose metric numerators, denominators, valid counts, and convention flags for future runs. No independent benchmark against Notung, ecceTERA, Treerecs, or another reconciliation program is reported, and no comprehensive complexity or scalability benchmark was performed. Independent reconciliation validation now uses a separate small-tree oracle rather than reusing production reconciliation code, and analytical simulator tests cover pure-loss extinction and pure-duplication special cases. These tests do not establish general correctness or external reconciliation agreement.
+The model and experimental design were deliberately narrow, and the available archive imposes additional limits. The experiment runner does not export the event-type agreement rate or signed duplication-count error, so those outputs cannot be analyzed from the trial CSVs. The raw data also omit the event denominators for location agreement and duplication compatibility. No independent benchmark against Notung, ecceTERA, Treerecs, or another reconciliation program is reported, and no comprehensive complexity or scalability benchmark was performed. The manuscript includes theoretical checks for near-pure-rate scenarios, but these calculations are not automated tests and should be independently checked by the authors before submission.
 
-Useful follow-up work would include independent reconciliation validation; more topologies, tree sizes, branch lengths, and rate regimes; explicit analysis of paired common-seed contrasts or an independently seeded design; evaluation with gene-tree error; and export of metric denominators and the currently omitted event metrics. Reconstructing and archiving the original generation scripts, software environment, and source revision would improve computational reproducibility. These are recommendations for future work, not results of the current study.
+Useful follow-up work would include independent reconciliation validation; more topologies, tree sizes, branch lengths, and rate regimes; uncertainty methods for paired common-seed contrasts or an independently seeded design; evaluation with gene-tree error; and export of metric denominators and the currently omitted event metrics. Reconstructing and archiving the original generation scripts, software environment, and source revision would improve computational reproducibility. These are recommendations for future work, not results of the current study.
 
 ## 8. Conclusion
 
@@ -319,7 +313,7 @@ PhyloBench is an inspectable implementation of established rooted-tree, LCA-base
 
 ## 9. Data, code, and availability
 
-The source code, tests, raw trial records, summaries, figures, reports, MIT license, and CFF citation metadata are available in the [PhyloBench GitHub repository](https://github.com/oma452/PhyloBench). Study artifacts are under `experiments/2026-10-30-first-study/` and `experiments/2026-10-30-second-study/`, including raw CSVs, `metadata/study_configuration.json`, summaries, reports, figures, and statistical/audit analyses. The package metadata reports version 0.1.0, and no tagged release or archival software DOI is claimed. `LICENSE` and `CITATION.cff` provide MIT reuse terms and software citation metadata. The complete original scripts for generating the historical study trials, derivative tables, and figures remain absent, and historical study software versions and source revisions are not recorded. Correspondence email, funding, acknowledgements, contributor roles, an ORCID, and a DOI remain unspecified by the available evidence.
+The source code, tests, raw trial records, summaries, figures, and reports are available in the [PhyloBench GitHub repository](https://github.com/oma452/PhyloBench). Study artifacts are under `experiments/2026-10-30-first-study/` and `experiments/2026-10-30-second-study/`, including raw CSVs, `metadata/study_configuration.json`, summaries, reports, figures, and `analysis/statistical_audit.py`. The repository includes an MIT `LICENSE`, `CITATION.cff`, `requirements-lock-py312.txt`, provenance manifests, artifact hashes, and executable regeneration and paired-seed analysis scripts. The package metadata reports version 0.1.0, but no tagged release or archival software DOI was found. Regeneration through the current CLI is not byte-for-byte reproduction of the historical artifacts: the complete original scripts for generating the study trials, derivative tables, and figures are absent, and archived historical CSVs should be distinguished from newly generated outputs. The historical CSV schema is not retroactively expanded with fields that were not originally exported. The current repository provides executable validation and analysis tooling, but not the complete original experiment-generation and figure-generation pipeline.
 
 ## References
 
